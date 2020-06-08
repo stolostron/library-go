@@ -6,7 +6,7 @@ The file [applier](../pkg/applier) contains an number of methods allowing you to
 
 A reader will read assets from a data source. You can find [testreader_test.go](./testreader_test.go) an example of a reader which reads the data from memory.
 
-A bindata implementation can be found [bindata](https://github.com/open-cluster-management/rcm-controller/bindata)
+A bindata implementation can be found [bindata](https://github.com/open-cluster-management/rcm-controller/pkg/bindata)
 
 ## How to use
 
@@ -32,7 +32,7 @@ The template parameters are passed using a `struct{}`
 
 ## Methods
 
-In [kubetools.go](../pkg/bindata/kubetools.go) there is methods which templates the yamls, return them as a list of yamls or list of `unstructured.Unstructured`.
+In [applier](../pkg/applier) there is methods which templates the yamls, return them as a list of yamls or list of `unstructured.Unstructured`.
 There is also methods that sort these templated yamls depending of their `kind`. The order is defined in `kindOrder` variable.
 A method `Create` creates all resources localted in a specific path
 
