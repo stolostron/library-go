@@ -1,4 +1,4 @@
-module open-cluster-management/library-go
+module github.com/open-cluster-management/library-go
 
 go 1.13
 
