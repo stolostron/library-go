@@ -26,6 +26,7 @@ type Applier struct {
 type TemplateReader interface {
 	Asset(templatePath string) ([]byte, error)
 	AssetNames() []string
+	ToJSON(b []byte) ([]byte, error)
 }
 
 //ApplierOptions defines for the available options for the applier
@@ -187,7 +188,7 @@ func (a *Applier) TemplateAssetsInPathUnstructured(
 	assets = make([]*unstructured.Unstructured, len(templateNames))
 
 	for i, b := range templatedAssets {
-		j, err := yaml.YAMLToJSON(b)
+		j, err := a.reader.ToJSON(b)
 		if err != nil {
 			return nil, err
 		}

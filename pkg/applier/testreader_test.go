@@ -4,11 +4,14 @@ package applier
 
 import (
 	"fmt"
+
+	"github.com/ghodss/yaml"
 )
 
 type testReader interface {
 	Asset(name string) ([]byte, error)
 	AssetNames() []string
+	ToJSON(b []byte) ([]byte, error)
 }
 
 type test struct{}
@@ -65,6 +68,10 @@ func (*test) AssetNames() []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func (*test) ToJSON(b []byte) ([]byte, error) {
+	return yaml.YAMLToJSON(b)
 }
 
 func NewTestReader() *test {
