@@ -2,8 +2,8 @@
 
 The file [applier](../pkg/applier) contains an number of methods allowing you to render template yamls. 
 The resources are read by an Go object satisfying the [TemplateReader](./templateProcessor.go) reader.  
-The reader is embedded in a templateProcessor.TemplateProcessor object
-The resources are sorted in order to be applied in a kubernetes environment using a templateProcessor.Client
+The reader is embedded in a applier.TemplateProcessor object
+The resources are sorted in order to be applied in a kubernetes environment using a applier.Client
 
 
 ## Implementing a reader
