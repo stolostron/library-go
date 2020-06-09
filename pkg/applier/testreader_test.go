@@ -8,12 +8,6 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-type testReader interface {
-	Asset(name string) ([]byte, error)
-	AssetNames() []string
-	ToJSON(b []byte) ([]byte, error)
-}
-
 type test struct{}
 
 var assets = map[string]string{
