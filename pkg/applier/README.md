@@ -6,7 +6,7 @@ The file [applier](../pkg/applier) contains an number of methods allowing you to
 
 A reader will read assets from a data source. You can find [testreader_test.go](./testreader_test.go) an example of a reader which reads the data from memory.
 
-A bindata implementation can be found [bindata](https://github.com/open-cluster-management/rcm-controller/pkg/bindata)
+A bindata implementation can be found [bindata](https://github.com/open-cluster-management/rcm-controller/pkg/bindata/bindatareader.go)
 
 ## How to use
 

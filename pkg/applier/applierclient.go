@@ -13,11 +13,11 @@ import (
 )
 
 type ApplierClient struct {
-	Applier *Applier
-	Client  client.Client
-	Owner   metav1.Object
-	Scheme  *runtime.Scheme
-	Merger  Merger
+	applier *Applier
+	client  client.Client
+	owner   metav1.Object
+	scheme  *runtime.Scheme
+	merger  Merger
 }
 
 func NewApplierClient(
@@ -28,11 +28,11 @@ func NewApplierClient(
 	merger Merger,
 ) (*ApplierClient, error) {
 	return &ApplierClient{
-		Applier: applier,
-		Client:  client,
-		Owner:   owner,
-		Scheme:  scheme,
-		Merger:  merger,
+		applier: applier,
+		client:  client,
+		owner:   owner,
+		scheme:  scheme,
+		merger:  merger,
 	}, nil
 }
 
@@ -58,7 +58,7 @@ func (c *ApplierClient) CreateOrUpdateInPath(
 	excluded []string,
 	recursive bool,
 ) error {
-	us, err := c.Applier.TemplateAssetsInPathUnstructured(
+	us, err := c.applier.TemplateAssetsInPathUnstructured(
 		path,
 		excluded,
 		recursive)
@@ -83,8 +83,8 @@ func (c *ApplierClient) createOrUpdate(
 
 	log.Info("Create or update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 	//Set controller ref
-	if c.Owner != nil && c.Scheme != nil {
-		if err := controllerutil.SetControllerReference(c.Owner, u, c.Scheme); err != nil {
+	if c.owner != nil && c.scheme != nil {
+		if err := controllerutil.SetControllerReference(c.owner, u, c.scheme); err != nil {
 			log.Error(err, "Failed to SetControllerReference",
 				"Name", u.GetName(),
 				"Namespace", u.GetNamespace())
@@ -96,14 +96,14 @@ func (c *ApplierClient) createOrUpdate(
 	current := &unstructured.Unstructured{}
 	current.SetGroupVersionKind(u.GroupVersionKind())
 	var errGet error
-	errGet = c.Client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
+	errGet = c.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
 	if errGet != nil {
 		if errors.IsNotFound(errGet) {
 			log.Info("Create",
 				"Kind", current.GetKind(),
 				"Name", current.GetName(),
 				"Namespace", current.GetNamespace())
-			err := c.Client.Create(context.TODO(), u)
+			err := c.client.Create(context.TODO(), u)
 			if err != nil {
 				log.Error(err, "Unable to create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 				return err
@@ -118,9 +118,9 @@ func (c *ApplierClient) createOrUpdate(
 			"Name", current.GetName(),
 			"Namespace", current.GetNamespace())
 
-		future, update := c.Merger(current, u)
+		future, update := c.merger(current, u)
 		if update {
-			err := c.Client.Update(context.TODO(), future)
+			err := c.client.Update(context.TODO(), future)
 			if err != nil {
 				log.Error(err, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 				return err

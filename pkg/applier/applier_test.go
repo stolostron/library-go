@@ -116,10 +116,9 @@ func TestApplier_TemplateAssetsInPathYaml(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := &Applier{
-				Reader:         tt.fields.Reader,
-				Values:         tt.fields.Values,
-				ApplierOptions: tt.fields.ApplierOptions,
+			a, err := NewApplier(tt.fields.reader, tt.fields.values, tt.fields.applierOptions)
+			if err != nil {
+				t.Error(err)
 			}
 			got, err := a.TemplateAssetsInPathYaml(tt.args.path, tt.args.excluded, tt.args.recursive)
 			if (err != nil) != tt.wantErr {
@@ -170,10 +169,9 @@ func TestApplier_Assets(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := &Applier{
-				Reader:         tt.fields.Reader,
-				Values:         tt.fields.Values,
-				ApplierOptions: tt.fields.ApplierOptions,
+			a, err := NewApplier(tt.fields.reader, tt.fields.values, tt.fields.applierOptions)
+			if err != nil {
+				t.Error(err)
 			}
 			gotPayloads, err := a.Assets(tt.args.path, tt.args.excluded, tt.args.recursive)
 			if (err != nil) != tt.wantErr {

@@ -52,12 +52,9 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &ApplierClient{
-				Applier: tt.fields.Applier,
-				Merger:  tt.fields.Merger,
-				Client:  tt.fields.Client,
-				Owner:   tt.fields.Owner,
-				Scheme:  tt.fields.Scheme,
+			c, err := NewApplierClient(tt.fields.applier, tt.fields.client, tt.fields.owner, tt.fields.scheme, tt.fields.merger)
+			if err != nil {
+				t.Error(err)
 			}
 			if err := c.CreateOrUpdateInPath(tt.args.path, tt.args.excluded, tt.args.recursive); (err != nil) != tt.wantErr {
 				t.Errorf("ApplierClient.CreateOrUpdateInPath() error = %v, wantErr %v", err, tt.wantErr)

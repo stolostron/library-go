@@ -17,9 +17,9 @@ import (
 
 //Applier this structure holds all object for the applier
 type Applier struct {
-	Reader         TemplateReader
-	Values         interface{}
-	ApplierOptions *ApplierOptions
+	reader         TemplateReader
+	values         interface{}
+	applierOptions *ApplierOptions
 }
 
 //TemplateReader defines the needed functions
@@ -67,9 +67,9 @@ func NewApplier(
 		applierOptions.KindsOrder = defaultKindsOrder
 	}
 	return &Applier{
-		Reader:         reader,
-		Values:         values,
-		ApplierOptions: applierOptions,
+		reader:         reader,
+		values:         values,
+		applierOptions: applierOptions,
 	}, nil
 }
 
@@ -90,7 +90,7 @@ func (a *Applier) TemplateAssets(templateNames []string) ([][]byte, error) {
 //TemplateAsset render the given template with the provided config
 func (a *Applier) TemplateAsset(templateName string) ([]byte, error) {
 	var buf bytes.Buffer
-	b, err := a.Reader.Asset(templateName)
+	b, err := a.reader.Asset(templateName)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (a *Applier) TemplateAsset(templateName string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = tmpl.Execute(&buf, a.Values)
+	err = tmpl.Execute(&buf, a.values)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (a *Applier) TemplateAssetsInPathYaml(path string, excluded []string, recur
 // subpath if recursive is set to true, it excludes the assets contained in the excluded parameter
 func (a *Applier) AssetNamesInPath(path string, excluded []string, recursive bool) []string {
 	results := make([]string, 0)
-	names := a.Reader.AssetNames()
+	names := a.reader.AssetNames()
 	for _, name := range names {
 		if isExcluded(name, excluded) {
 			continue
@@ -164,7 +164,7 @@ func (a *Applier) Assets(path string, excluded []string, recursive bool) (payloa
 	names := a.AssetNamesInPath(path, excluded, recursive)
 
 	for _, name := range names {
-		b, err := a.Reader.Asset(name)
+		b, err := a.reader.Asset(name)
 		if err != nil {
 			return nil, err
 		}
@@ -221,10 +221,10 @@ func (a *Applier) less(u1, u2 *unstructured.Unstructured) bool {
 
 func (a *Applier) weight(u *unstructured.Unstructured) int {
 	kind := u.GetKind()
-	for i, k := range a.ApplierOptions.KindsOrder {
+	for i, k := range a.applierOptions.KindsOrder {
 		if k == kind {
 			return i
 		}
 	}
-	return len(a.ApplierOptions.KindsOrder)
+	return len(a.applierOptions.KindsOrder)
 }
