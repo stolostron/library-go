@@ -49,6 +49,16 @@ rules:
   verbs: ["get"]`,
 }
 
+var values = struct {
+	ManagedClusterName          string
+	ManagedClusterNamespace     string
+	BootstrapServiceAccountName string
+}{
+	ManagedClusterName:          "mycluster",
+	ManagedClusterNamespace:     "myclusterns",
+	BootstrapServiceAccountName: "mysa",
+}
+
 func (*Test) Asset(name string) ([]byte, error) {
 	if s, ok := assets[name]; ok {
 		return []byte(s), nil

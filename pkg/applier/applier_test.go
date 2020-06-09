@@ -9,7 +9,22 @@ import (
 )
 
 func TestTemplateAssetsToMapOfUnstructured(t *testing.T) {
-	a, err := NewApplier(NewTestReader(), nil, nil)
+	ad, err := NewApplier(NewTestReader(), values, nil)
+	if err != nil {
+		t.Errorf("Unable to create applier %s", err.Error())
+	}
+	kindsOrder := []string{
+		"ClusterRole",
+		"ClusterRoleBinding",
+		"ServiceAccount",
+	}
+
+	kindsNewOrder := []string{
+		"ServiceAccount",
+		"ClusterRole",
+		"ClusterRoleBinding",
+	}
+	aNewOrder, err := NewApplier(NewTestReader(), values, &Options{KindsOrder: kindsNewOrder})
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -22,6 +37,7 @@ func TestTemplateAssetsToMapOfUnstructured(t *testing.T) {
 		path      string
 		recursive bool
 		config    config
+		applier   *Applier
 	}
 	type check struct {
 		kinds []string
@@ -43,27 +59,34 @@ func TestTemplateAssetsToMapOfUnstructured(t *testing.T) {
 					ManagedClusterNamespace:     "mymanagedclusterNS",
 					BootstrapServiceAccountName: "mymanagedcluster",
 				},
+				applier: ad,
 			},
 			check: check{
-				kinds: []string{
-					"ClusterRole",
-					"ClusterRoleBinding",
-					"ServiceAccount",
-					"Namespace",
-					"Secret",
-					"ServiceAccount",
-					"Role",
-					"RoleBinding",
-					"ConfigMap",
-					"Deployment",
+				kinds: kindsOrder,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Parse new order",
+			args: args{
+				path:      "test",
+				recursive: true,
+				config: config{
+					ManagedClusterName:          "mymanagedcluster",
+					ManagedClusterNamespace:     "mymanagedclusterNS",
+					BootstrapServiceAccountName: "mymanagedcluster",
 				},
+				applier: aNewOrder,
+			},
+			check: check{
+				kinds: kindsNewOrder,
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotAssets, err := a.TemplateAssetsInPathUnstructured(tt.args.path, nil, tt.args.recursive)
+			gotAssets, err := tt.args.applier.TemplateAssetsInPathUnstructured(tt.args.path, nil, tt.args.recursive)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AssetsUnstructured() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -82,7 +105,7 @@ func TestTemplateAssetsToMapOfUnstructured(t *testing.T) {
 }
 
 func TestApplier_TemplateAssetsInPathYaml(t *testing.T) {
-	a, err := NewApplier(NewTestReader(), nil, nil)
+	a, err := NewApplier(NewTestReader(), values, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -135,7 +158,7 @@ func TestApplier_TemplateAssetsInPathYaml(t *testing.T) {
 }
 
 func TestApplier_Assets(t *testing.T) {
-	a, err := NewApplier(NewTestReader(), nil, nil)
+	a, err := NewApplier(NewTestReader(), values, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}

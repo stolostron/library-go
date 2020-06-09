@@ -1,6 +1,10 @@
 # Introduction
 
-The file [applier](../pkg/applier) contains an number of methods allowing you to render template yamls hold by a reader and also create these resources.
+The file [applier](../pkg/applier) contains an number of methods allowing you to render template yamls. 
+The resources are read by an Go object satisfying the [TemplateReader](./applier.go) reader.  
+The reader is embedded in a applier.Applier object
+The resources are sorted in order to be applied in a kubernetes environment using a applier.Client
+
 
 ## Implementing a reader
 
@@ -8,47 +12,58 @@ A reader will read assets from a data source. You can find [testreader_test.go](
 
 A bindata implementation can be found [bindata](https://github.com/open-cluster-management/rcm-controller/pkg/bindata/bindatareader.go)
 
+
 ## How to use
 
 The template parameters are passed using a `struct{}`
 
 ```
-	a, err := NewApplier(NewTestReader(), nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	config := struct {
-		ManagedClusterName      string
-		ManagedClusterNamespace string
+	values := struct {
+		ManagedClusterName          string
+		ManagedClusterNamespace     string
+		BootstrapServiceAccountName string
 	}{
-		ManagedClusterName:      saNsN.Name,
-		ManagedClusterNamespace: saNsN.Namespace,
+		ManagedClusterName:          instance.Name,
+		ManagedClusterNamespace:     instance.Name,
+		BootstrapServiceAccountName: instance.Name + bootstrapServiceAccountNamePostfix,
 	}
-	result, err := a.TemplateAsset("hub/managedcluster/manifests/managedcluster-service-account.yaml")
+
+	a, err := applier.NewApplier(bindata.NewBindataReader(), values, nil)
 	if err != nil {
-		return nil, err
+		return reconcile.Result{}, err
 	}
+
+	c, err := applier.NewApplierClient(a, r.client, instance, r.scheme, merger)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = c.CreateOrUpdateInPath(
+		"test",
+		nil,
+		false,
+	)
 ```
 
 ## Methods
 
-In [applier](../pkg/applier) there is methods which templates the yamls, return them as a list of yamls or list of `unstructured.Unstructured`.
-There is also methods that sort these templated yamls depending of their `kind`. The order is defined in `kindOrder` variable.
-A method `Create` creates all resources localted in a specific path
+In [applier](../pkg/applier) there are methods which templates the yamls, return them as a list of yamls or list of `unstructured.Unstructured`.
+There are also methods that sort these templated yamls depending of their `kind`. The order is defined in `kindOrder` variable.
+A method `CreateOrUpdateInPath` creates or update all resources localted in a specific path.
 
 ### Example 1: Generate a templated yaml
 
 ```
-	a, err := NewApplier(NewTestReader(), nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	config := struct {
+	values := struct {
 		ManagedClusterName      string
 		ManagedClusterNamespace string
 	}{
 		ManagedClusterName:      saNsN.Name,
 		ManagedClusterNamespace: saNsN.Namespace,
+	}
+	a, err := NewApplier(NewTestReader(), values, nil)
+	if err != nil {
+		return nil, err
 	}
 	result, err := a.TemplateAsset("hub/managedcluster/manifests/managedcluster-service-account.yaml")
 	if err != nil {
@@ -60,11 +75,7 @@ The result contains a `[]byte` representing the templated yaml with the provided
 ### Example 2: Generate a list of templated yaml
 
 ```
-	a, err := NewApplier(NewTestReader(), nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	config := struct {
+	values := struct {
 		KlusterletNamespace   string
 		BootstrapSecretName   string
 		BootstrapSecretToken  string
@@ -80,6 +91,11 @@ The result contains a `[]byte` representing the templated yaml with the provided
 		ImagePullSecretName:   imagePullSecret.Name,
 		ImagePullSecretData:   base64.StdEncoding.EncodeToString(imagePullSecret.Data[".dockerconfigjson"]),
 		ImagePullSecretType:   imagePullSecret.Type,
+	}
+
+	a, err := NewApplier(NewTestReader(), values, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	nucleusYAMLs, err := a.TemplateAssets([]string{
@@ -98,11 +114,7 @@ nucleusYamls contains a non-sorted `[][]bytes` each element is the templated yam
 ### Example 3: Generate a sorted list of yamls based using all templates in a given directory
 
 ```
-	a, err := NewApplier(NewTestReader(), nil, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	config := struct {
+	values := struct {
 		KlusterletNamespace   string
 		BootstrapSecretName   string
 		BootstrapSecretToken  string
@@ -118,6 +130,11 @@ nucleusYamls contains a non-sorted `[][]bytes` each element is the templated yam
 		ImagePullSecretName:   imagePullSecret.Name,
 		ImagePullSecretData:   base64.StdEncoding.EncodeToString(imagePullSecret.Data[".dockerconfigjson"]),
 		ImagePullSecretType:   imagePullSecret.Type,
+	}
+
+	a, err := NewApplier(NewTestReader(), values, nil)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	nucleusYAMLs, err := a.TemplateAssetsInPathYaml(
@@ -174,7 +191,17 @@ var merger bindata.Merger = func(current,
 	return current, update
 }
 ...
-	a, err := NewApplier(NewTestReader(), nil, nil)
+	values := struct {
+		ManagedClusterName          string
+		ManagedClusterNamespace     string
+		BootstrapServiceAccountName string
+	}{
+		ManagedClusterName:          instance.Name,
+		ManagedClusterNamespace:     instance.Name,
+		BootstrapServiceAccountName: instance.Name + bootstrapServiceAccountNamePostfix,
+	}
+
+	a, err := NewApplier(NewTestReader(), values, nil)
 	if err != nil {
 		return nil, nil, err
 	}
