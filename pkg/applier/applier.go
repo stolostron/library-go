@@ -1,237 +1,157 @@
-// Copyright (c) 2020 Red Hat, Inc.
-
 package applier
 
 import (
-	"bytes"
-	"path/filepath"
-	"sort"
-	"strings"
-	"text/template"
+	"context"
+	goerr "errors"
+	"fmt"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/ghodss/yaml"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-//Applier this structure holds all object for the applier
+//Applier structure to access kubernetes through the applier
 type Applier struct {
-	//reader a TemplateReader to read the data source
-	reader TemplateReader
-	//The values to use in the template
-	values interface{}
-	//Options to configure the applier
-	options *Options
+	//An TemplateProcessor
+	templateProcessor *TemplateProcessor
+	//The client-go kubernetes client
+	client client.Client
+	//The owner of the created object
+	owner metav1.Object
+	//The scheme
+	scheme *runtime.Scheme
+	//A merger defining how two objects must be merged
+	merger Merger
 }
 
-//TemplateReader defines the needed functions
-type TemplateReader interface {
-	//Retreive an asset from the data source
-	Asset(templatePath string) ([]byte, error)
-	//List all available assets in the data source
-	AssetNames() []string
-	//Transform the assets into a JSON. This is used to transform the asset into an unstructrued.Unstructured object.
-	//For example: if the asset is a yaml, you can use yaml.YAMLToJSON(b []byte) as implementation as it is shown in
-	//testread_test.go
-	ToJSON(b []byte) ([]byte, error)
-}
-
-//Options defines for the available options for the applier
-type Options struct {
-	//Override the default order, it contains the kind order which the applier must use before applying all resources.
-	KindsOrder []string
-}
-
-var log = logf.Log.WithName("applier")
-
-//defaultKindsOrder the default order
-var defaultKindsOrder = []string{
-	"CustomResourceDefinition",
-	"ClusterRole",
-	"ClusterRoleBinding",
-	"Namespace",
-	"Secret",
-	"ServiceAccount",
-	"Role",
-	"RoleBinding",
-	"ConfigMap",
-	"Deployment",
-}
-
-//NewApplier creates a new applier
-//reader: The TemplateReader to use to read the templates
-//
+//NewApplier creates a new client to access kubernetes through the applier.
+//applier: An applier
+//client: The client-go client to use when applying the resources.
+//owner: The object owner for the setControllerReference, the reference is not if nil.
+//scheme: The object scheme for the setControllerReference, the reference is not if nil.
+//merger: The function implementing the way how the resources must be merged
 func NewApplier(
-	reader TemplateReader,
-	values interface{},
-	applierOptions *Options,
+	templateProcessor *TemplateProcessor,
+	client client.Client,
+	owner metav1.Object,
+	scheme *runtime.Scheme,
+	merger Merger,
 ) (*Applier, error) {
-	if applierOptions == nil {
-		applierOptions = &Options{}
+	if templateProcessor == nil {
+		return nil, goerr.New("applier is nil")
 	}
-	if applierOptions.KindsOrder == nil {
-		applierOptions.KindsOrder = defaultKindsOrder
+	if client == nil {
+		return nil, goerr.New("client is nil")
 	}
 	return &Applier{
-		reader:  reader,
-		values:  values,
-		options: applierOptions,
+		templateProcessor: templateProcessor,
+		client:            client,
+		owner:             owner,
+		scheme:            scheme,
+		merger:            merger,
 	}, nil
 }
 
-//TemplateAssets render the given templates with the provided config
-//The assets are not sorted
-func (a *Applier) TemplateAssets(templateNames []string) ([][]byte, error) {
-	results := make([][]byte, len(templateNames))
-	for i, templateName := range templateNames {
-		result, err := a.TemplateAsset(templateName)
-		if err != nil {
-			return nil, err
-		}
-		results[i] = result
-	}
-	return results, nil
-}
+//Merger merges the `current` and the `want` resources into one resource which will be use for to update.
+// If `update` is true than the update will be executed.
+type Merger func(current,
+	new *unstructured.Unstructured,
+) (
+	future *unstructured.Unstructured,
+	update bool,
+)
 
-//TemplateAsset render the given template with the provided config
-func (a *Applier) TemplateAsset(templateName string) ([]byte, error) {
-	var buf bytes.Buffer
-	b, err := a.reader.Asset(templateName)
-	if err != nil {
-		return nil, err
-	}
-	tmpl, err := template.New(templateName).Parse(string(b))
-	if err != nil {
-		return nil, err
-	}
-	err = tmpl.Execute(&buf, a.values)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), err
-}
-
-// TemplateAssetsInPathYaml returns all assets in a path using the provided config.
-// The assets are sorted following the order defined in variable kindsOrder
-func (a *Applier) TemplateAssetsInPathYaml(path string, excluded []string, recursive bool) ([][]byte, error) {
-	us, err := a.TemplateAssetsInPathUnstructured(path, excluded, recursive)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([][]byte, len(us))
-
-	for i, u := range us {
-		j, err := u.MarshalJSON()
-		if err != nil {
-			return nil, err
-		}
-		y, err := yaml.JSONToYAML(j)
-		if err != nil {
-			return nil, err
-		}
-		results[i] = y
-	}
-	return results, nil
-}
-
-//AssetNamesInPath returns all asset names with a given path and
-// subpath if recursive is set to true, it excludes the assets contained in the excluded parameter
-func (a *Applier) AssetNamesInPath(path string, excluded []string, recursive bool) []string {
-	results := make([]string, 0)
-	names := a.reader.AssetNames()
-	for _, name := range names {
-		if isExcluded(name, excluded) {
-			continue
-		}
-		if (recursive && strings.HasPrefix(name, path)) ||
-			(!recursive && filepath.Dir(name) == path) {
-			results = append(results, name)
-		}
-	}
-	return results
-}
-
-func isExcluded(name string, excluded []string) bool {
-	if excluded == nil {
-		return false
-	}
-	for _, e := range excluded {
-		if e == name {
-			return true
-		}
-	}
-	return false
-}
-
-//Assets returns all assets with a given path and
-// subpath if recursive set to true, it excludes the assets contained in the excluded parameter
-func (a *Applier) Assets(path string, excluded []string, recursive bool) (payloads [][]byte, err error) {
-	names := a.AssetNamesInPath(path, excluded, recursive)
-
-	for _, name := range names {
-		b, err := a.reader.Asset(name)
-		if err != nil {
-			return nil, err
-		}
-		payloads = append(payloads, b)
-	}
-	return payloads, nil
-}
-
-// TemplateAssetsInPathUnstructured returns all assets in a []unstructured.Unstructured and sort them
-// The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
-func (a *Applier) TemplateAssetsInPathUnstructured(
+//CreateOrUpdateInPath creates or updates the assets (if they don't exist yet) found in the path and
+// subpath if recursive is set to true.
+// path: The path were the yaml to apply is located
+// excludes: The list of yamls to exclude
+// recursive: If true all yamls in the path directory and sub-directories will be applied
+// it excludes the assets named in the excluded array
+// it sets the Controller reference if owner and scheme are not nil
+//
+func (a *Applier) CreateOrUpdateInPath(
 	path string,
 	excluded []string,
-	recursive bool) (assets []*unstructured.Unstructured, err error) {
-	templateNames := a.AssetNamesInPath(path, excluded, recursive)
-	templatedAssets, err := a.TemplateAssets(templateNames)
+	recursive bool,
+	values interface{},
+) error {
+	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+		path,
+		excluded,
+		recursive,
+		values)
+
 	if err != nil {
-		return nil, err
+		return err
 	}
-	assets = make([]*unstructured.Unstructured, len(templateNames))
-
-	for i, b := range templatedAssets {
-		j, err := a.reader.ToJSON(b)
+	//Create the unstructured items if they don't exist yet
+	for _, u := range us {
+		err := a.createOrUpdate(u)
 		if err != nil {
-			return nil, err
-		}
-		u := &unstructured.Unstructured{}
-		err = u.UnmarshalJSON(j)
-		if err != nil {
-			return nil, err
-		}
-		assets[i] = u
-	}
-	a.sortUnstructuredForApply(assets)
-	return assets, nil
-}
-
-//sortUnstructuredForApply sorts a list on unstructured
-func (a *Applier) sortUnstructuredForApply(objects []*unstructured.Unstructured) {
-	sort.Slice(objects[:], func(i, j int) bool {
-		return a.less(objects[i], objects[j])
-	})
-}
-
-func (a *Applier) less(u1, u2 *unstructured.Unstructured) bool {
-	if a.weight(u1) == a.weight(u2) {
-		if u1.GetNamespace() == u2.GetNamespace() {
-			return u1.GetName() < u2.GetName()
-		}
-		return u1.GetNamespace() < u2.GetNamespace()
-	}
-	return a.weight(u1) < a.weight(u2)
-}
-
-func (a *Applier) weight(u *unstructured.Unstructured) int {
-	kind := u.GetKind()
-	for i, k := range a.options.KindsOrder {
-		if k == kind {
-			return i
+			return err
 		}
 	}
-	return len(a.options.KindsOrder)
+	return nil
+}
+
+//createOrUpdate creates or updates an unstructured (if they don't exist yet) found in the path and
+func (a *Applier) createOrUpdate(
+	u *unstructured.Unstructured,
+) error {
+
+	log.Info("Create or update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	//Set controller ref
+	if a.owner != nil && a.scheme != nil {
+		if err := controllerutil.SetControllerReference(a.owner, u, a.scheme); err != nil {
+			log.Error(err, "Failed to SetControllerReference",
+				"Name", u.GetName(),
+				"Namespace", u.GetNamespace())
+			return err
+		}
+	}
+
+	//Check if already exists
+	current := &unstructured.Unstructured{}
+	current.SetGroupVersionKind(u.GroupVersionKind())
+	var errGet error
+	errGet = a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
+	if errGet != nil {
+		if errors.IsNotFound(errGet) {
+			log.Info("Create",
+				"Kind", current.GetKind(),
+				"Name", current.GetName(),
+				"Namespace", current.GetNamespace())
+			err := a.client.Create(context.TODO(), u)
+			if err != nil {
+				log.Error(err, "Unable to create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+				return err
+			}
+		} else {
+			log.Error(errGet, "Error while create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+			return errGet
+		}
+	} else {
+		log.Info("Update",
+			"Kind", current.GetKind(),
+			"Name", current.GetName(),
+			"Namespace", current.GetNamespace())
+		if a.merger == nil {
+			return fmt.Errorf("Unable to update as the merger is nil")
+		}
+		future, update := a.merger(current, u)
+		if update {
+			err := a.client.Update(context.TODO(), future)
+			if err != nil {
+				log.Error(err, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+				return err
+			}
+		} else {
+			log.Info("No update needed")
+		}
+	}
+	return nil
 }
