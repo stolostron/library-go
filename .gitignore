@@ -1,0 +1,8 @@
+
+# Directories
+.go
+.vscode
+vendor
+
+# Files
+
