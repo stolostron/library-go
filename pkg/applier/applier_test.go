@@ -3,126 +3,45 @@
 package applier
 
 import (
+	"context"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubectl/pkg/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestTemplateAssetsToMapOfUnstructured(t *testing.T) {
-	ad, err := NewApplier(NewTestReader(), values, nil)
+func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
+	testscheme := scheme.Scheme
+
+	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRole{})
+	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
+	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
+
+	tp, err := NewTemplateProcessor(NewTestReader(), nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
-	}
-	kindsOrder := []string{
-		"ClusterRole",
-		"ClusterRoleBinding",
-		"ServiceAccount",
 	}
 
-	kindsNewOrder := []string{
-		"ServiceAccount",
-		"ClusterRole",
-		"ClusterRoleBinding",
-	}
-	aNewOrder, err := NewApplier(NewTestReader(), values, &Options{KindsOrder: kindsNewOrder})
-	if err != nil {
-		t.Errorf("Unable to create applier %s", err.Error())
-	}
-	type config struct {
-		ManagedClusterName          string
-		ManagedClusterNamespace     string
-		BootstrapServiceAccountName string
-	}
-	type args struct {
-		path      string
-		recursive bool
-		config    config
-		applier   *Applier
-	}
-	type check struct {
-		kinds []string
-	}
-	tests := []struct {
-		name       string
-		args       args
-		check      check
-		wantAssets map[string]*unstructured.Unstructured
-		wantErr    bool
-	}{
-		{
-			name: "Parse",
-			args: args{
-				path:      "test",
-				recursive: true,
-				config: config{
-					ManagedClusterName:          "mymanagedcluster",
-					ManagedClusterNamespace:     "mymanagedclusterNS",
-					BootstrapServiceAccountName: "mymanagedcluster",
-				},
-				applier: ad,
-			},
-			check: check{
-				kinds: kindsOrder,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Parse new order",
-			args: args{
-				path:      "test",
-				recursive: true,
-				config: config{
-					ManagedClusterName:          "mymanagedcluster",
-					ManagedClusterNamespace:     "mymanagedclusterNS",
-					BootstrapServiceAccountName: "mymanagedcluster",
-				},
-				applier: aNewOrder,
-			},
-			check: check{
-				kinds: kindsNewOrder,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotAssets, err := tt.args.applier.TemplateAssetsInPathUnstructured(tt.args.path, nil, tt.args.recursive)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("AssetsUnstructured() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if len(gotAssets) != 3 {
-				t.Errorf("The number of unstructured asset must be 3 got: %d", len(gotAssets))
-				return
-			}
-			for i := range gotAssets {
-				if gotAssets[i].GetKind() != tt.check.kinds[i] {
-					t.Errorf("Sort is not correct wanted %s and got: %s", tt.check.kinds[i], gotAssets[i].GetKind())
-				}
-			}
-		})
-	}
-}
+	client := fake.NewFakeClient([]runtime.Object{}...)
 
-func TestApplier_TemplateAssetsInPathYaml(t *testing.T) {
-	a, err := NewApplier(NewTestReader(), values, nil)
+	a, err := NewApplier(tp, client, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
-	}
-	results := make([][]byte, 0)
-	for _, y := range assets {
-		results = append(results, []byte(y))
 	}
 	type args struct {
 		path      string
 		excluded  []string
 		recursive bool
+		values    interface{}
 	}
 	tests := []struct {
 		name    string
 		fields  Applier
 		args    args
-		want    [][]byte
 		wantErr bool
 	}{
 		{
@@ -132,78 +51,41 @@ func TestApplier_TemplateAssetsInPathYaml(t *testing.T) {
 				path:      "test",
 				excluded:  nil,
 				recursive: false,
+				values:    values,
 			},
-			want:    results,
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, err := NewApplier(tt.fields.reader, tt.fields.values, tt.fields.options)
+			if err := tt.fields.CreateOrUpdateInPath(tt.args.path, tt.args.excluded, tt.args.recursive, tt.args.values); (err != nil) != tt.wantErr {
+				t.Errorf("ApplierClient.CreateOrUpdateInPath() error = %v, wantErr %v", err, tt.wantErr)
+			}
 			if err != nil {
-				t.Error(err)
-			}
-			got, err := a.TemplateAssetsInPathYaml(tt.args.path, tt.args.excluded, tt.args.recursive)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Applier.TemplateAssetsInPathYaml() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != nil {
-				if len(got) != len(tt.want) {
-					t.Errorf("Applier.TemplateAssetsInPathYaml() returns %v yamls, want %v", len(got), len(tt.want))
+				sa := &corev1.ServiceAccount{}
+				err := client.Get(context.TODO(), types.NamespacedName{
+					Name:      values.ManagedClusterName,
+					Namespace: values.ManagedClusterNamespace,
+				}, sa)
+				if err != nil {
+					t.Error(err)
 				}
-			}
-		})
-	}
-}
-
-func TestApplier_Assets(t *testing.T) {
-	a, err := NewApplier(NewTestReader(), values, nil)
-	if err != nil {
-		t.Errorf("Unable to create applier %s", err.Error())
-	}
-	results := make([][]byte, 0)
-	for _, y := range assets {
-		results = append(results, []byte(y))
-	}
-	type args struct {
-		path      string
-		excluded  []string
-		recursive bool
-	}
-	tests := []struct {
-		name         string
-		fields       Applier
-		args         args
-		wantPayloads [][]byte
-		wantErr      bool
-	}{
-		{
-			name:   "success",
-			fields: *a,
-			args: args{
-				path:      "test",
-				excluded:  nil,
-				recursive: false,
-			},
-			wantPayloads: results,
-			wantErr:      false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			a, err := NewApplier(tt.fields.reader, tt.fields.values, tt.fields.options)
-			if err != nil {
-				t.Error(err)
-			}
-			gotPayloads, err := a.Assets(tt.args.path, tt.args.excluded, tt.args.recursive)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Applier.Assets() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotPayloads != nil {
-				if len(gotPayloads) != len(tt.wantPayloads) {
-					t.Errorf("Applier.TemplateAssetsInPathYaml() returns %v yamls, want %v", len(gotPayloads), len(tt.wantPayloads))
+				r := &rbacv1.ClusterRole{}
+				err = client.Get(context.TODO(), types.NamespacedName{
+					Name: values.ManagedClusterName,
+				}, r)
+				if err != nil {
+					t.Error(err)
+				}
+				rb := &rbacv1.ClusterRoleBinding{}
+				err = client.Get(context.TODO(), types.NamespacedName{
+					Name: values.ManagedClusterName,
+				}, rb)
+				if err != nil {
+					t.Error(err)
+				}
+				if rb.RoleRef.Name != "system:test:"+values.ManagedClusterName {
+					t.Errorf("Expecting %s got %s", "system:test:"+values.ManagedClusterName, rb.RoleRef.Name)
 				}
 			}
 		})
