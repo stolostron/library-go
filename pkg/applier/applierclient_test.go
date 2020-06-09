@@ -35,7 +35,7 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  ApplierClient
+		fields  Client
 		args    args
 		wantErr bool
 	}{

@@ -8,7 +8,7 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-type test struct{}
+type Test struct{}
 
 var assets = map[string]string{
 	"test/clusterrolebinding": `
@@ -49,14 +49,14 @@ rules:
   verbs: ["get"]`,
 }
 
-func (*test) Asset(name string) ([]byte, error) {
+func (*Test) Asset(name string) ([]byte, error) {
 	if s, ok := assets[name]; ok {
 		return []byte(s), nil
 	}
 	return nil, fmt.Errorf("Asset %s not found", name)
 }
 
-func (*test) AssetNames() []string {
+func (*Test) AssetNames() []string {
 	keys := make([]string, 0)
 	for k := range assets {
 		keys = append(keys, k)
@@ -64,10 +64,10 @@ func (*test) AssetNames() []string {
 	return keys
 }
 
-func (*test) ToJSON(b []byte) ([]byte, error) {
+func (*Test) ToJSON(b []byte) ([]byte, error) {
 	return yaml.YAMLToJSON(b)
 }
 
-func NewTestReader() *test {
-	return &test{}
+func NewTestReader() *Test {
+	return &Test{}
 }

@@ -12,22 +12,34 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-type ApplierClient struct {
+//Client structure to access kubernetes through the applier
+type Client struct {
+	//An Applier
 	applier *Applier
-	client  client.Client
-	owner   metav1.Object
-	scheme  *runtime.Scheme
-	merger  Merger
+	//The client-go kubernetes client
+	client client.Client
+	//The owner of the created object
+	owner metav1.Object
+	//The scheme
+	scheme *runtime.Scheme
+	//A merger defining how two objects must be merged
+	merger Merger
 }
 
+//NewApplierClient creates a new client to access kubernetes through the applier.
+//applier: An applier
+//client: The client-go client to use when applying the resources.
+//owner: The object owner for the setControllerReference, the reference is not if nil.
+//scheme: The object scheme for the setControllerReference, the reference is not if nil.
+//merger: The function implementing the way how the resources must be merged
 func NewApplierClient(
 	applier *Applier,
 	client client.Client,
 	owner metav1.Object,
 	scheme *runtime.Scheme,
 	merger Merger,
-) (*ApplierClient, error) {
-	return &ApplierClient{
+) (*Client, error) {
+	return &Client{
 		applier: applier,
 		client:  client,
 		owner:   owner,
@@ -53,7 +65,7 @@ type Merger func(current,
 // it excludes the assets named in the excluded array
 // it sets the Controller reference if owner and scheme are not nil
 //
-func (c *ApplierClient) CreateOrUpdateInPath(
+func (c *Client) CreateOrUpdateInPath(
 	path string,
 	excluded []string,
 	recursive bool,
@@ -77,7 +89,7 @@ func (c *ApplierClient) CreateOrUpdateInPath(
 }
 
 //createOrUpdate creates or updates an unstructured (if they don't exist yet) found in the path and
-func (c *ApplierClient) createOrUpdate(
+func (c *Client) createOrUpdate(
 	u *unstructured.Unstructured,
 ) error {
 

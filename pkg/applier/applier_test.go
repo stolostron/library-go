@@ -116,7 +116,7 @@ func TestApplier_TemplateAssetsInPathYaml(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, err := NewApplier(tt.fields.reader, tt.fields.values, tt.fields.applierOptions)
+			a, err := NewApplier(tt.fields.reader, tt.fields.values, tt.fields.options)
 			if err != nil {
 				t.Error(err)
 			}
@@ -169,7 +169,7 @@ func TestApplier_Assets(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, err := NewApplier(tt.fields.reader, tt.fields.values, tt.fields.applierOptions)
+			a, err := NewApplier(tt.fields.reader, tt.fields.values, tt.fields.options)
 			if err != nil {
 				t.Error(err)
 			}

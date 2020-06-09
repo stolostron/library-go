@@ -17,20 +17,28 @@ import (
 
 //Applier this structure holds all object for the applier
 type Applier struct {
-	reader         TemplateReader
-	values         interface{}
-	applierOptions *ApplierOptions
+	//reader a TemplateReader to read the data source
+	reader TemplateReader
+	//The values to use in the template
+	values interface{}
+	//Options to configure the applier
+	options *Options
 }
 
 //TemplateReader defines the needed functions
 type TemplateReader interface {
+	//Retreive an asset from the data source
 	Asset(templatePath string) ([]byte, error)
+	//List all available assets in the data source
 	AssetNames() []string
+	//Transform the assets into a JSON. This is used to transform the asset into an unstructrued.Unstructured object.
+	//For example: if the asset is a yaml, you can use yaml.YAMLToJSON(b []byte) as implementation as it is shown in
+	//testread_test.go
 	ToJSON(b []byte) ([]byte, error)
 }
 
-//ApplierOptions defines for the available options for the applier
-type ApplierOptions struct {
+//Options defines for the available options for the applier
+type Options struct {
 	//Override the default order, it contains the kind order which the applier must use before applying all resources.
 	KindsOrder []string
 }
@@ -53,24 +61,22 @@ var defaultKindsOrder = []string{
 
 //NewApplier creates a new applier
 //reader: The TemplateReader to use to read the templates
-//merger: The function implementing the way how the resources must be merged
-//client: The client-go client to use when applying the resources.
 //
 func NewApplier(
 	reader TemplateReader,
 	values interface{},
-	applierOptions *ApplierOptions,
+	applierOptions *Options,
 ) (*Applier, error) {
 	if applierOptions == nil {
-		applierOptions = &ApplierOptions{}
+		applierOptions = &Options{}
 	}
 	if applierOptions.KindsOrder == nil {
 		applierOptions.KindsOrder = defaultKindsOrder
 	}
 	return &Applier{
-		reader:         reader,
-		values:         values,
-		applierOptions: applierOptions,
+		reader:  reader,
+		values:  values,
+		options: applierOptions,
 	}, nil
 }
 
@@ -222,10 +228,10 @@ func (a *Applier) less(u1, u2 *unstructured.Unstructured) bool {
 
 func (a *Applier) weight(u *unstructured.Unstructured) int {
 	kind := u.GetKind()
-	for i, k := range a.applierOptions.KindsOrder {
+	for i, k := range a.options.KindsOrder {
 		if k == kind {
 			return i
 		}
 	}
-	return len(a.applierOptions.KindsOrder)
+	return len(a.options.KindsOrder)
 }
