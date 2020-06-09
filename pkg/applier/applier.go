@@ -65,7 +65,7 @@ type Merger func(current,
 	update bool,
 )
 
-//CreateOrUpdateInPath creates or updates the assets (if they don't exist yet) found in the path and
+//CreateOrUpdateInPath creates or updates the assets found in the path and
 // subpath if recursive is set to true.
 // path: The path were the yaml to apply is located
 // excludes: The list of yamls to exclude
@@ -90,7 +90,7 @@ func (a *Applier) CreateOrUpdateInPath(
 	}
 	//Create the unstructured items if they don't exist yet
 	for _, u := range us {
-		err := a.createOrUpdate(u)
+		err := a.CreateOrUpdate(u)
 		if err != nil {
 			return err
 		}
@@ -98,8 +98,8 @@ func (a *Applier) CreateOrUpdateInPath(
 	return nil
 }
 
-//createOrUpdate creates or updates an unstructured (if they don't exist yet) found in the path and
-func (a *Applier) createOrUpdate(
+//CreateOrUpdate creates or updates an unstructured (if they don't exist yet) found in the path and
+func (a *Applier) CreateOrUpdate(
 	u *unstructured.Unstructured,
 ) error {
 

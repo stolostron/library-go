@@ -1,6 +1,6 @@
 # Introduction
 
-The file [templateProcessor](../pkg/templateProcessor) contains an number of methods allowing you to render template yamls. 
+The file [applier](../pkg/applier) contains an number of methods allowing you to render template yamls. 
 The resources are read by an Go object satisfying the [TemplateReader](./templateProcessor.go) reader.  
 The reader is embedded in a templateProcessor.TemplateProcessor object
 The resources are sorted in order to be applied in a kubernetes environment using a templateProcessor.Client
@@ -12,44 +12,10 @@ A reader will read assets from a data source. You can find [testreader_test.go](
 
 A bindata implementation can be found [bindata](https://github.com/open-cluster-management/rcm-controller/pkg/bindata/bindatareader.go)
 
-
-## How to use
-
-The template parameters are passed using a `struct{}`
-
-```
-	values := struct {
-		ManagedClusterName          string
-		ManagedClusterNamespace     string
-		BootstrapServiceAccountName string
-	}{
-		ManagedClusterName:          instance.Name,
-		ManagedClusterNamespace:     instance.Name,
-		BootstrapServiceAccountName: instance.Name + bootstrapServiceAccountNamePostfix,
-	}
-
-	tp, err := applier.NewTemplateProcessor(bindata.NewBindataReader(), nil)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	a, err := applier.NewApplier(tp, r.client, instance, r.scheme, merger)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	err = a.CreateOrUpdateInPath(
-		"test",
-		nil,
-		false,
-		values,
-	)
-```
-
 ## Methods
 
-In [templateProcessor](../pkg/templateProcessor) there are methods which templates the yamls, return them as a list of yamls or list of `unstructured.Unstructured`.
-There are also methods that sort these templated yamls depending of their `kind`. The order is defined in `kindOrder` variable.
+In [applier](../pkg/applier) there are methods which process the yaml templates, return them as a list of yamls or list of `unstructured.Unstructured`.
+There are also methods that sort these processed yaml templates depending of their `kind`. The order is defined in `kindOrder` variable which can be override.
 A method `CreateOrUpdateInPath` creates or update all resources localted in a specific path.
 
 ### Example 1: Generate a templated yaml
