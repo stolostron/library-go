@@ -1,4 +1,4 @@
-package e2etest
+package options
 
 type TestOptionsContainer struct {
 	Options TestOptions `yaml:"options"`

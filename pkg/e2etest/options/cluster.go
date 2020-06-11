@@ -1,4 +1,4 @@
-package e2etest
+package options
 
 //GetCluster returns the first cluster with a given tag
 func GetCluster(tag string, clusters []Cluster) *Cluster {

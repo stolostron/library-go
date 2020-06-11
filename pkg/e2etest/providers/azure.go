@@ -1,19 +1,20 @@
-package config
+package providers
 
 import (
 	"bytes"
 	"text/template"
 )
 
-type InstallerConfigAWS struct {
+type InstallerConfigAzure struct {
 	Name          string
 	BaseDnsDomain string
 	SSHKey        string
+	BaseDomainRGN string
 	Region        string
 }
 
 // function for filling out installconfig template, takes installConfig struct and returns string for secret creation
-func GetInstallConfigAWS(instConfig InstallerConfigAWS) string {
+func GetInstallConfigAzure(instConfig InstallerConfigAzure) string {
 	const configTemplate = `
 apiVersion: v1
 metadata:
@@ -24,23 +25,23 @@ controlPlane:
   name: master
   replicas: 3
   platform:
-    aws:
-      rootVolume:
-        iops: 4000
-        size: 500
-        type: io1
-      type: m4.xlarge
+    azure:
+      osDisk:
+      diskSizeGB: 128
+    type:  Standard_D4s_v3
 compute:
 - hyperthreading: Enabled
   name: worker
   replicas: 3
   platform:
-      aws:
-      rootVolume:
-        iops: 2000
-        size: 500
-        type: io1
-      type: m4.large
+    azure:
+      type:  Standard_D2s_v3
+      osDisk:
+      diskSizeGB: 128
+      zones:
+      - "1"
+      - "2"
+      - "3"
 networking:
   clusterNetwork:
   - cidr: 10.128.0.0/14
@@ -50,10 +51,11 @@ networking:
   serviceNetwork:
   - 172.30.0.0/16
 platform:
-  aws:
+  azure:
+    baseDomainResourceGroupName: {{.BaseDomainRGN}}
     region: {{.Region}}
-pullSecret: ""
-sshKey: {{.SSHKey}}
+pullSecret: "" # skip, hive will inject based on it's secrets
+sshKey: {{.SSHKey}}  
 `
 	stdoutBuffer := new(bytes.Buffer)
 	t := template.Must(template.New("configTemplate").Parse(configTemplate))
