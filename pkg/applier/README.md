@@ -65,7 +65,7 @@ The result contains a `[]byte` representing the templated yaml with the provided
 		return nil, err
 	}
 
-	nucleusYAMLs, err := tp.TemplateAssets([]string{
+	results, err := tp.TemplateAssets([]string{
 		"klusterlet/namespace.yaml",
 		"klusterlet/image_pull_secret.yaml",
 		"klusterlet/bootstrap_secret.yaml",
@@ -76,9 +76,23 @@ The result contains a `[]byte` representing the templated yaml with the provided
 	}, values)
 
 ```
-nucleusYamls contains a non-sorted `[][]bytes` each element is the templated yamls using the provided config.
+results contains a non-sorted `[][]bytes` each element is the templated yamls using the provided values.
 
-### Example 3: Generate a sorted list of yamls based using all templates in a given directory
+### Example 3: Retreive a list of yamls
+
+```
+	tp, err := NewTemplateProcessor(NewTestReader(), nil, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	crds, err = tp.Assets("klusterlet/crds", nil, true)
+	if err != nil {
+		return nil, nil, err
+	}
+```
+The crds contains a `[][]byte` (non-sorted) of all yamls found in `klusterlet/crds` directory and sub-directory using the provided config.
+
+### Example 4: Generate a sorted list of yamls based using all templates in a given directory
 
 ```
 	values := struct {
@@ -104,27 +118,13 @@ nucleusYamls contains a non-sorted `[][]bytes` each element is the templated yam
 		return nil, nil, err
 	}
 
-	nucleusYAMLs, err := tp.TemplateAssetsInPathYaml(
+	resutls, err := tp.TemplateAssetsInPathYaml(
 		"klusterlet", nil, false, values)
 	if err != nil {
 		return nil, nil, err
 	}
 ```
-The nucleusYAMls contains a `[][]byte` which is sorted based on all yamls in the `resources/klusterlet` (non-recursive) using the provided config.
-
-### Example 4: Retreive a list of yamls
-
-```
-	tp, err := NewTemplateProcessor(NewTestReader(), nil, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	crds, err = tp.Assets("klusterlet/crds", nil, true)
-	if err != nil {
-		return nil, nil, err
-	}
-```
-The crds contains a `[][]byte` (non-sorted) of all yamls found in `klusterlet/crds` directory and sub-directory using the provided config.
+The results contains a `[][]byte`. The yamls are sorted based on the Kind, Namespace and Name of the resource. All yamls come from the `resources/klusterlet` (non-recursive) using the provided values.
 
 ### Example 5: Create or update all resources defined in a directory
 
@@ -180,7 +180,7 @@ var merger bindata.Merger = func(current,
 
 	err = a.CreateOrUpdateInPath(
 		"hub/managedcluster/manifests",
-		nil,
+		[]string{"hub/managedcluster/manifests/managedcluster-service-account.yaml"},
 		false,
 		values,
 	)
@@ -190,4 +190,4 @@ var merger bindata.Merger = func(current,
 	}
 ```
 
-This will create (in a sorted way) or update all resources located in the `hub/managedcluster/manifests` directory (non-recursive) except `hub/managedcluster/manifests/managedcluster-service-account.yaml`. A Merger function is passed as parameter to defind if the update must occur or not and how to merge the current resource with the new resource.
+This will create or update all resources located in the `hub/managedcluster/manifests` directory (non-recursive) except `hub/managedcluster/manifests/managedcluster-service-account.yaml`. The resources are sorted based on their Kind, Namespace and Name. A Merger function is passed as parameter to define if the update must occur or not and how to merge the current resource with the new resource.
