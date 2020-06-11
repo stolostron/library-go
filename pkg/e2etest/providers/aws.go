@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"text/template"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/open-cluster-management/library-go/pkg/client"
+	"github.com/open-cluster-management/library-go/pkg/e2etest/options"
 	"k8s.io/klog"
 )
 
@@ -66,8 +71,8 @@ sshKey: {{.SSHKey}}
 	}
 	return stdoutBuffer.String()
 }
-func HaveServerResources(c Cluster, kubeconfig string, expectedAPIGroups []string) error {
-	clientAPIExtension := NewKubeClientAPIExtension(c.MasterURL, kubeconfig, c.KubeContext)
+func HaveServerResources(c options.Cluster, kubeconfig string, expectedAPIGroups []string) error {
+	clientAPIExtension := client.NewKubeClientAPIExtension(c.MasterURL, kubeconfig, c.KubeContext)
 	clientDiscovery := clientAPIExtension.Discovery()
 	for _, apiGroup := range expectedAPIGroups {
 		klog.V(1).Infof("Check if %s exists", apiGroup)
@@ -80,8 +85,8 @@ func HaveServerResources(c Cluster, kubeconfig string, expectedAPIGroups []strin
 	return nil
 }
 
-func HaveCRDs(c Cluster, kubeconfig string, expectedCRDs []string) error {
-	clientAPIExtension := NewKubeClientAPIExtension(c.MasterURL, kubeconfig, c.KubeContext)
+func HaveCRDs(c options.Cluster, kubeconfig string, expectedCRDs []string) error {
+	clientAPIExtension := client.NewKubeClientAPIExtension(c.MasterURL, kubeconfig, c.KubeContext)
 	clientAPIExtensionV1beta1 := clientAPIExtension.ApiextensionsV1beta1()
 	for _, crd := range expectedCRDs {
 		klog.V(1).Infof("Check if %s exists", crd)
@@ -94,9 +99,9 @@ func HaveCRDs(c Cluster, kubeconfig string, expectedCRDs []string) error {
 	return nil
 }
 
-func HaveDeploymentsInNamespace(c Cluster, kubeconfig string, namespace string, expectedDeploymentNames []string) error {
+func HaveDeploymentsInNamespace(c options.Cluster, kubeconfig string, namespace string, expectedDeploymentNames []string) error {
 
-	client := NewKubeClient(c.MasterURL, kubeconfig, c.KubeContext)
+	client := client.NewKubeClient(c.MasterURL, kubeconfig, c.KubeContext)
 	versionInfo, err := client.Discovery().ServerVersion()
 	if err != nil {
 		return err
