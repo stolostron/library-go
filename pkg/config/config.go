@@ -22,6 +22,16 @@ func LoadConfig(url, kubeconfig, context string) (*rest.Config, error) {
 	if kubeconfig != "" {
 		if context == "" {
 			// klog.V(5).Infof("clientcmd.BuildConfigFromFlags with %s and %s", url, kubeconfig)
+			// Retreive the config for the current context
+			if url == "" {
+				config, err := clientcmd.LoadFromFile(kubeconfig)
+				if err != nil {
+					return nil, err
+				}
+				return clientcmd.NewDefaultClientConfig(
+					*config,
+					&clientcmd.ConfigOverrides{}).ClientConfig()
+			}
 			return clientcmd.BuildConfigFromFlags(url, kubeconfig)
 		} else {
 			return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
