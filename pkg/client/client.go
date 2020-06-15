@@ -10,6 +10,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+func NewDefaultKubeClient(kubeconfig string) kubernetes.Interface {
+	return NewKubeClient("", kubeconfig, "")
+}
+
 func NewKubeClient(url, kubeconfig, context string) kubernetes.Interface {
 	klog.V(5).Infof("Create kubeclient for url %s using kubeconfig path %s\n", url, kubeconfig)
 	config, err := config.LoadConfig(url, kubeconfig, context)
@@ -25,6 +29,10 @@ func NewKubeClient(url, kubeconfig, context string) kubernetes.Interface {
 	return clientset
 }
 
+func NewDefaultKubeClientDynamic(kubeconfig string) dynamic.Interface {
+	return NewKubeClientDynamic("", kubeconfig, "")
+}
+
 func NewKubeClientDynamic(url, kubeconfig, context string) dynamic.Interface {
 	klog.V(5).Infof("Create kubeclient dynamic for url %s using kubeconfig path %s\n", url, kubeconfig)
 	config, err := config.LoadConfig(url, kubeconfig, context)
@@ -38,6 +46,10 @@ func NewKubeClientDynamic(url, kubeconfig, context string) dynamic.Interface {
 	}
 
 	return clientset
+}
+
+func NewDefaultKubeClientAPIExtension(kubeconfig string) apiextensionsclientset.Interface {
+	return NewKubeClientAPIExtension("", kubeconfig, "")
 }
 
 func NewKubeClientAPIExtension(url, kubeconfig, context string) apiextensionsclientset.Interface {
