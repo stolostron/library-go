@@ -5,10 +5,30 @@ import (
 	"github.com/open-cluster-management/library-go/pkg/config"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
+
+func NewDefaultClient(kubeconfig string, options client.Options) client.Client {
+	return NewClient("", kubeconfig, "", options)
+}
+
+func NewClient(url, kubeconfig, context string, options client.Options) client.Client {
+	klog.V(5).Infof("Create kubeclient for url %s using kubeconfig path %s\n", url, kubeconfig)
+	config, err := config.LoadConfig(url, kubeconfig, context)
+	if err != nil {
+		panic(err)
+	}
+
+	client, err := client.New(config, options)
+	if err != nil {
+		panic(err)
+	}
+
+	return client
+}
 
 func NewDefaultKubeClient(kubeconfig string) kubernetes.Interface {
 	return NewKubeClient("", kubeconfig, "")
