@@ -6,26 +6,13 @@ type TestOptionsContainer struct {
 
 // Define options available for Tests to consume
 type TestOptions struct {
-	HubCluster               Cluster         `yaml:"hub"`
+	HubConfigDir             string          `yaml:"hubConfigDir"`
 	ManagedClustersConfigDir string          `yaml:"managedClustersConfigDir"`
 	ImageRegistry            Registry        `yaml:"imageRegistry,omitempty"`
-	KubeConfig               string          `yaml:"kubeconfig,omitempty"`
 	IdentityProvider         int             `yaml:"identityProvider,omitempty"`
 	Connection               CloudConnection `yaml:"cloudConnection,omitempty"`
 	Headless                 string          `yaml:"headless,omitempty"`
 	OwnerPrefix              string          `yaml:"ownerPrefix,omitempty"`
-}
-
-// Define the shape of clusters that may be added under management
-type Cluster struct {
-	Name        string          `yaml:"name,omitempty"`
-	Namespace   string          `yaml:"namespace,omitempty"`
-	Tags        map[string]bool `yaml:"tags,omitempty"`
-	BaseDomain  string          `yaml:"baseDomain"`
-	User        string          `yaml:"user,omitempty"`
-	Password    string          `yaml:"password,omitempty"`
-	KubeContext string          `yaml:"kubecontext,omitempty"`
-	MasterURL   string          `yaml:"masterURL,omitempty"`
 }
 
 // Define the image registry

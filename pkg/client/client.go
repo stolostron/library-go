@@ -3,7 +3,7 @@ package client
 
 import (
 	"github.com/open-cluster-management/library-go/pkg/config"
-	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/klog"
 
 	"k8s.io/client-go/dynamic"
@@ -48,18 +48,18 @@ func NewKubeClientDynamic(url, kubeconfig, context string) dynamic.Interface {
 	return clientset
 }
 
-func NewDefaultKubeClientAPIExtension(kubeconfig string) apiextensionsclientset.Interface {
+func NewDefaultKubeClientAPIExtension(kubeconfig string) clientset.Interface {
 	return NewKubeClientAPIExtension("", kubeconfig, "")
 }
 
-func NewKubeClientAPIExtension(url, kubeconfig, context string) apiextensionsclientset.Interface {
+func NewKubeClientAPIExtension(url, kubeconfig, context string) clientset.Interface {
 	klog.V(5).Infof("Create kubeclient apiextension for url %s using kubeconfig path %s\n", url, kubeconfig)
 	config, err := config.LoadConfig(url, kubeconfig, context)
 	if err != nil {
 		panic(err)
 	}
 
-	clientset, err := apiextensionsclientset.NewForConfig(config)
+	clientset, err := clientset.NewForConfig(config)
 	if err != nil {
 		panic(err)
 	}

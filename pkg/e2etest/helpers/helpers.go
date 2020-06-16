@@ -8,19 +8,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-cluster-management/library-go/pkg/client"
-	"github.com/open-cluster-management/library-go/pkg/e2etest/options"
 	"gopkg.in/yaml.v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 )
 
-func HaveServerResources(c options.Cluster, kubeconfig string, expectedAPIGroups []string) error {
-	clientAPIExtension := client.NewKubeClientAPIExtension(c.MasterURL, kubeconfig, c.KubeContext)
-	clientDiscovery := clientAPIExtension.Discovery()
+func HaveServerResources(client clientset.Interface, expectedAPIGroups []string) error {
+	clientDiscovery := client.Discovery()
 	for _, apiGroup := range expectedAPIGroups {
 		klog.V(1).Infof("Check if %s exists", apiGroup)
 		_, err := clientDiscovery.ServerResourcesForGroupVersion(apiGroup)
@@ -32,9 +32,8 @@ func HaveServerResources(c options.Cluster, kubeconfig string, expectedAPIGroups
 	return nil
 }
 
-func HaveCRDs(c options.Cluster, kubeconfig string, expectedCRDs []string) error {
-	clientAPIExtension := client.NewKubeClientAPIExtension(c.MasterURL, kubeconfig, c.KubeContext)
-	clientAPIExtensionV1beta1 := clientAPIExtension.ApiextensionsV1beta1()
+func HaveCRDs(client clientset.Interface, expectedCRDs []string) error {
+	clientAPIExtensionV1beta1 := client.ApiextensionsV1beta1()
 	for _, crd := range expectedCRDs {
 		klog.V(1).Infof("Check if %s exists", crd)
 		_, err := clientAPIExtensionV1beta1.CustomResourceDefinitions().Get(crd, metav1.GetOptions{})
@@ -46,9 +45,7 @@ func HaveCRDs(c options.Cluster, kubeconfig string, expectedCRDs []string) error
 	return nil
 }
 
-func HaveDeploymentsInNamespace(c options.Cluster, kubeconfig string, namespace string, expectedDeploymentNames []string) error {
-
-	client := client.NewKubeClient(c.MasterURL, kubeconfig, c.KubeContext)
+func HaveDeploymentsInNamespace(client kubernetes.Interface, namespace string, expectedDeploymentNames []string) error {
 	versionInfo, err := client.Discovery().ServerVersion()
 	if err != nil {
 		return err
