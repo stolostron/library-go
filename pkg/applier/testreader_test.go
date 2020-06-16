@@ -66,12 +66,12 @@ func (*Test) Asset(name string) ([]byte, error) {
 	return nil, fmt.Errorf("Asset %s not found", name)
 }
 
-func (*Test) AssetNames() []string {
+func (*Test) AssetNames() ([]string, error) {
 	keys := make([]string, 0)
 	for k := range assets {
 		keys = append(keys, k)
 	}
-	return keys
+	return keys, nil
 }
 
 func (*Test) ToJSON(b []byte) ([]byte, error) {

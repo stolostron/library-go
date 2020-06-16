@@ -29,7 +29,7 @@ type TemplateReader interface {
 	//Retreive an asset from the data source
 	Asset(templatePath string) ([]byte, error)
 	//List all available assets in the data source
-	AssetNames() []string
+	AssetNames() ([]string, error)
 	//Transform the assets into a JSON. This is used to transform the asset into an unstructrued.Unstructured object.
 	//For example: if the asset is a yaml, you can use yaml.YAMLToJSON(b []byte) as implementation as it is shown in
 	//testread_test.go
@@ -143,9 +143,12 @@ func (tp *TemplateProcessor) TemplateAssetsInPathYaml(path string, excluded []st
 
 //AssetNamesInPath returns all asset names with a given path and
 // subpath if recursive is set to true, it excludes the assets contained in the excluded parameter
-func (tp *TemplateProcessor) AssetNamesInPath(path string, excluded []string, recursive bool) []string {
+func (tp *TemplateProcessor) AssetNamesInPath(path string, excluded []string, recursive bool) ([]string, error) {
 	results := make([]string, 0)
-	names := tp.reader.AssetNames()
+	names, err := tp.reader.AssetNames()
+	if err != nil {
+		return nil, err
+	}
 	for _, name := range names {
 		if isExcluded(name, excluded) {
 			continue
@@ -155,7 +158,7 @@ func (tp *TemplateProcessor) AssetNamesInPath(path string, excluded []string, re
 			results = append(results, name)
 		}
 	}
-	return results
+	return results, nil
 }
 
 func isExcluded(name string, excluded []string) bool {
@@ -173,7 +176,10 @@ func isExcluded(name string, excluded []string) bool {
 //Assets returns all assets with a given path and
 // subpath if recursive set to true, it excludes the assets contained in the excluded parameter
 func (tp *TemplateProcessor) Assets(path string, excluded []string, recursive bool) (payloads [][]byte, err error) {
-	names := tp.AssetNamesInPath(path, excluded, recursive)
+	names, err := tp.AssetNamesInPath(path, excluded, recursive)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, name := range names {
 		b, err := tp.reader.Asset(name)
@@ -192,7 +198,10 @@ func (tp *TemplateProcessor) TemplateAssetsInPathUnstructured(
 	excluded []string,
 	recursive bool,
 	values interface{}) (assets []*unstructured.Unstructured, err error) {
-	templateNames := tp.AssetNamesInPath(path, excluded, recursive)
+	templateNames, err := tp.AssetNamesInPath(path, excluded, recursive)
+	if err != nil {
+		return nil, err
+	}
 	templatedAssets, err := tp.TemplateAssets(templateNames, values)
 	if err != nil {
 		return nil, err
