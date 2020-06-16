@@ -58,16 +58,18 @@ func TestYamlFileReader_AssetNames(t *testing.T) {
 		rootDirectory string
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		want   []string
+		name    string
+		fields  fields
+		want    []string
+		wantErr bool
 	}{
 		{
 			name: "success",
 			fields: fields{
 				rootDirectory: "../../test/unit-test/resources/yamlfilereader",
 			},
-			want: []string{"../../test/unit-test/resources/yamlfilereader/filereader.yaml"},
+			want:    []string{"filereader.yaml"},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -75,7 +77,12 @@ func TestYamlFileReader_AssetNames(t *testing.T) {
 			r := &YamlFileReader{
 				rootDirectory: tt.fields.rootDirectory,
 			}
-			if got := r.AssetNames(); !reflect.DeepEqual(got, tt.want) {
+			got, err := r.AssetNames()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("YamlFileReader.Asset() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("YamlFileReader.AssetNames() = %v, want %v", got, tt.want)
 			}
 		})

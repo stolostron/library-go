@@ -18,17 +18,21 @@ func (*YamlFileReader) Asset(name string) ([]byte, error) {
 	return ioutil.ReadFile(name)
 }
 
-func (r *YamlFileReader) AssetNames() []string {
+func (r *YamlFileReader) AssetNames() ([]string, error) {
 	keys := make([]string, 0)
-	_ = filepath.Walk(r.rootDirectory, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(r.rootDirectory, func(path string, info os.FileInfo, err error) error {
 		if info != nil {
 			if !info.IsDir() {
-				keys = append(keys, path)
+				newPath, err := filepath.Rel(r.rootDirectory, path)
+				if err != nil {
+					return err
+				}
+				keys = append(keys, newPath)
 			}
 		}
 		return nil
 	})
-	return keys
+	return keys, err
 }
 
 func (*YamlFileReader) ToJSON(b []byte) ([]byte, error) {
