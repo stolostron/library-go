@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 )
 
-//GetManagedClusterKubeConfigs returns all managedcluster kubeconfig for a given scenario, except for the hubName
+//GetManagedClusterKubeConfigs returns all managedcluster kubeconfig for a given scenario
 //The file path <configDir>/<scenario>/<clusterName>/kubeconfig.yaml are returned
-func GetManagedClusterKubeConfigs(configDir, scenario, hubName string) (map[string]string, error) {
+func GetManagedClusterKubeConfigs(configDir, scenario string) (map[string]string, error) {
 	if configDir == "" {
 		return nil, fmt.Errorf("configDir not defined")
 	}
@@ -23,13 +23,11 @@ func GetManagedClusterKubeConfigs(configDir, scenario, hubName string) (map[stri
 	err := filepath.Walk(scenarioPath, func(path string, info os.FileInfo, err error) error {
 		if info != nil {
 			if info.IsDir() {
-				if info.Name() != hubName {
-					kubeConfigFilePath := filepath.Join(path + "kubeconfig.yaml")
-					if _, err := os.Stat(kubeConfigFilePath); os.IsNotExist(err) {
-						return fmt.Errorf("Missing file %s", kubeConfigFilePath)
-					}
-					filteredKubeConfigs[info.Name()] = kubeConfigFilePath
+				kubeConfigFilePath := filepath.Join(path + "kubeconfig.yaml")
+				if _, err := os.Stat(kubeConfigFilePath); os.IsNotExist(err) {
+					return fmt.Errorf("Missing file %s", kubeConfigFilePath)
 				}
+				filteredKubeConfigs[info.Name()] = kubeConfigFilePath
 			}
 		}
 		return nil
