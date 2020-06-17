@@ -2,8 +2,9 @@ package unstructured
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-//StatusContainsTypeEqualTo check if u contains a condition type with value typeString
-func StatusContainsTypeEqualTo(u *unstructured.Unstructured, typeString string) bool {
+//GetCondition returns the condition with type typeString
+// returns nil if the condition is not found
+func GetCondition(u *unstructured.Unstructured, typeString string) map[string]interface{} {
 	if u != nil {
 		if v, ok := u.Object["status"]; ok {
 			status := v.(map[string]interface{})
@@ -13,12 +14,12 @@ func StatusContainsTypeEqualTo(u *unstructured.Unstructured, typeString string) 
 					condition := v.(map[string]interface{})
 					if v, ok := condition["type"]; ok {
 						if v.(string) == typeString {
-							return true
+							return condition
 						}
 					}
 				}
 			}
 		}
 	}
-	return false
+	return nil
 }
