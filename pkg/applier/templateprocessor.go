@@ -207,26 +207,53 @@ func (tp *TemplateProcessor) TemplateAssetsInPathUnstructured(
 		return nil, err
 	}
 	assets, err = tp.BytesArrayToUnstructured(templatedAssets)
+	if err != nil {
+		return nil, err
+	}
 	tp.sortUnstructuredForApply(assets)
 	return assets, nil
 }
 
+// TemplateBytesUnstructured returns all assets defined in a []byte (separted by the delimiter)
+// in a []unstructured.Unstructured and sort them
+// The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
+func (tp *TemplateProcessor) TemplateBytesUnstructured(
+	assets []byte,
+	values interface{},
+	delimiter string) (us []*unstructured.Unstructured, err error) {
+	ys := strings.Split(string(assets), delimiter)
+	templatedAssets := make([][]byte, 0)
+	for _, y := range ys {
+		if len(strings.TrimSpace(y)) == 0 {
+			continue
+		}
+		templatedAssets = append(templatedAssets, []byte(y))
+	}
+	us, err = tp.BytesArrayToUnstructured(templatedAssets)
+	if err != nil {
+		return nil, err
+	}
+	tp.sortUnstructuredForApply(us)
+	return us, nil
+
+}
+
 //BytesArrayToUnstructured transform a [][]byte to an []*unstructured.Unstructured using the TemplateProcessor reader
-func (tp *TemplateProcessor) BytesArrayToUnstructured(data [][]byte) (assets []*unstructured.Unstructured, err error) {
-	assets = make([]*unstructured.Unstructured, len(data))
-	for i, b := range data {
+func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*unstructured.Unstructured, err error) {
+	us = make([]*unstructured.Unstructured, len(assets))
+	for i, b := range assets {
 		u, err := tp.BytesToUnstructured(b)
 		if err != nil {
 			return nil, err
 		}
-		assets[i] = u
+		us[i] = u
 	}
-	return assets, nil
+	return us, nil
 }
 
 //BytesToUnstructured transform a []byte to an *unstructured.Unstructured using the TemplateProcessor reader
-func (tp *TemplateProcessor) BytesToUnstructured(data []byte) (*unstructured.Unstructured, error) {
-	j, err := tp.reader.ToJSON(data)
+func (tp *TemplateProcessor) BytesToUnstructured(asset []byte) (*unstructured.Unstructured, error) {
+	j, err := tp.reader.ToJSON(asset)
 	if err != nil {
 		return nil, err
 	}
@@ -239,9 +266,9 @@ func (tp *TemplateProcessor) BytesToUnstructured(data []byte) (*unstructured.Uns
 }
 
 //sortUnstructuredForApply sorts a list on unstructured
-func (tp *TemplateProcessor) sortUnstructuredForApply(objects []*unstructured.Unstructured) {
-	sort.Slice(objects[:], func(i, j int) bool {
-		return tp.less(objects[i], objects[j])
+func (tp *TemplateProcessor) sortUnstructuredForApply(us []*unstructured.Unstructured) {
+	sort.Slice(us[:], func(i, j int) bool {
+		return tp.less(us[i], us[j])
 	})
 }
 

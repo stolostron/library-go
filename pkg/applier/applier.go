@@ -93,7 +93,21 @@ func (a *Applier) CreateOrUpdateInPath(
 	return a.CreateOrUpdates(us)
 }
 
-//CreateorUpdateFile create or updates from a file
+//CreateOrUpdateYamls create or update all resources defined in the assets.
+//The asserts are separated by the delimiter (ie: "---" for yamls)
+func (a *Applier) CreateOrUpdateAssets(
+	assets []byte,
+	values interface{},
+	delimiter string,
+) error {
+	us, err := a.templateProcessor.TemplateBytesUnstructured(assets, values, delimiter)
+	if err != nil {
+		return err
+	}
+	return a.CreateOrUpdates(us)
+}
+
+//CreateorUpdateFile create or updates an asset
 func (a *Applier) CreateOrUpdateAsset(
 	assetName string,
 	values interface{},
