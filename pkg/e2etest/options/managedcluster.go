@@ -22,8 +22,8 @@ func GetManagedClusterKubeConfigs(configDir, scenario string) (map[string]string
 	filteredKubeConfigs := make(map[string]string, 0)
 	err := filepath.Walk(scenarioPath, func(path string, info os.FileInfo, err error) error {
 		if info != nil {
-			if info.IsDir() {
-				kubeConfigFilePath := filepath.Join(path, info.Name(), "kubeconfig.yaml")
+			if info.IsDir() && info.Name() != scenario {
+				kubeConfigFilePath := filepath.Join(path, "kubeconfig.yaml")
 				if _, err := os.Stat(kubeConfigFilePath); os.IsNotExist(err) {
 					return fmt.Errorf("Missing file %s", kubeConfigFilePath)
 				}
