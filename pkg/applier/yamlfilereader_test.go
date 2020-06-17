@@ -27,7 +27,7 @@ func TestYamlFileReader_Asset(t *testing.T) {
 				rootDirectory: "../../test/unit-test/resources/yamlfilereader",
 			},
 			args: args{
-				name: "../../test/unit-test/resources/yamlfilereader/filereader.yaml",
+				name: "filereader.yaml",
 			},
 			want: []byte(`apiVersion: fake/v1
 kind: Fake

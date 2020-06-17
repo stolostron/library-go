@@ -94,7 +94,7 @@ func (a *Applier) CreateOrUpdateInPath(
 }
 
 //CreateorUpdateFile create or updates from a file
-func (a *Applier) CreateorUpdateAsset(
+func (a *Applier) CreateOrUpdateAsset(
 	assetName string,
 	values interface{},
 ) error {

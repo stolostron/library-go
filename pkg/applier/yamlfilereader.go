@@ -14,8 +14,8 @@ type YamlFileReader struct {
 	rootDirectory string
 }
 
-func (*YamlFileReader) Asset(name string) ([]byte, error) {
-	return ioutil.ReadFile(name)
+func (r *YamlFileReader) Asset(name string) ([]byte, error) {
+	return ioutil.ReadFile(filepath.Join(r.rootDirectory, name))
 }
 
 func (r *YamlFileReader) AssetNames() ([]string, error) {
