@@ -221,15 +221,20 @@ func (tp *TemplateProcessor) TemplateBytesUnstructured(
 	assets []byte,
 	values interface{},
 	delimiter string) (us []*unstructured.Unstructured, err error) {
-	ys := strings.Split(string(assets), delimiter)
-	templatedAssets := make([][]byte, 0)
+	templatedAssets, err := tp.TemplateBytes(assets, values)
+	if err != nil {
+		return nil, err
+	}
+	assetsString := string(templatedAssets)
+	ys := strings.Split(assetsString, delimiter)
+	templatedAssetsArray := make([][]byte, 0)
 	for _, y := range ys {
 		if len(strings.TrimSpace(y)) == 0 {
 			continue
 		}
-		templatedAssets = append(templatedAssets, []byte(y))
+		templatedAssetsArray = append(templatedAssetsArray, []byte(y))
 	}
-	us, err = tp.BytesArrayToUnstructured(templatedAssets)
+	us, err = tp.BytesArrayToUnstructured(templatedAssetsArray)
 	if err != nil {
 		return nil, err
 	}

@@ -206,3 +206,97 @@ func TestTemplateProcessor_Assets(t *testing.T) {
 		})
 	}
 }
+
+func TestTemplateProcessor_TemplateBytesUnstructured(t *testing.T) {
+	assets := []byte(`---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:test:{{ .ManagedClusterName }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:test:{{ .ManagedClusterName }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .BootstrapServiceAccountName }}
+  namespace: {{ .ManagedClusterNamespace }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .BootstrapServiceAccountName }}
+  namespace: {{ .ManagedClusterNamespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:test:{{ .ManagedClusterName }}
+rules:
+# Allow managed agent to rotate its certificate
+- apiGroups: ['certificates.k8s.io']
+  resources: ['certificatesigningrequests']
+  verbs: ['create', 'get', 'list', 'watch']
+# Allow managed agent to get
+- apiGroups: ['cluster.open-cluster-management.io']
+  resources: ['managedclusters']
+  resourceNames: ['{{ .ManagedClusterName }}']
+  verbs: ['get']
+`)
+
+	var values = struct {
+		ManagedClusterName          string
+		ManagedClusterNamespace     string
+		BootstrapServiceAccountName string
+	}{
+		ManagedClusterName:          "mycluster",
+		ManagedClusterNamespace:     "myclusterns",
+		BootstrapServiceAccountName: "mysa",
+	}
+
+	type fields struct {
+		reader  TemplateReader
+		options *Options
+	}
+	type args struct {
+		assets    []byte
+		values    interface{}
+		delimiter string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "succeed",
+			fields: fields{
+				reader:  NewTestReader(),
+				options: &Options{},
+			},
+			args: args{
+				assets:    assets,
+				values:    values,
+				delimiter: "---",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tp := &TemplateProcessor{
+				reader:  tt.fields.reader,
+				options: tt.fields.options,
+			}
+			gotUs, err := tp.TemplateBytesUnstructured(tt.args.assets, tt.args.values, tt.args.delimiter)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("TemplateProcessor.TemplateBytesUnstructured() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if len(gotUs) != 3 {
+				t.Errorf("Got len %d, want 3", len(gotUs))
+			}
+		})
+	}
+}
