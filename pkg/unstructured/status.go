@@ -1,10 +1,14 @@
 package unstructured
 
-import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+import (
+	"fmt"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
 
 //GetCondition returns the condition with type typeString
-// returns nil if the condition is not found
-func GetCondition(u *unstructured.Unstructured, typeString string) map[string]interface{} {
+// returns error if the condition is not found
+func GetCondition(u *unstructured.Unstructured, typeString string) (map[string]interface{}, error) {
 	if u != nil {
 		if v, ok := u.Object["status"]; ok {
 			status := v.(map[string]interface{})
@@ -14,12 +18,12 @@ func GetCondition(u *unstructured.Unstructured, typeString string) map[string]in
 					condition := v.(map[string]interface{})
 					if v, ok := condition["type"]; ok {
 						if v.(string) == typeString {
-							return condition
+							return condition, nil
 						}
 					}
 				}
 			}
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("condition %s not found", typeString)
 }
