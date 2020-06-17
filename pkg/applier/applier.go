@@ -93,6 +93,22 @@ func (a *Applier) CreateOrUpdateInPath(
 	return a.CreateOrUpdates(us)
 }
 
+//CreateorUpdateFile create or updates from a file
+func (a *Applier) CreateorUpdateFile(
+	fileName string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateAsset(fileName, values)
+	if err != nil {
+		return err
+	}
+	u, err := a.templateProcessor.BytesToUnstructured(b)
+	if err != nil {
+		return err
+	}
+	return a.CreateOrUpdate(u)
+}
+
 //CreateOrUpdates an array of unstructured.Unstructured
 func (a *Applier) CreateOrUpdates(us []*unstructured.Unstructured) error {
 	//Create the unstructured items if they don't exist yet
