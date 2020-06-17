@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +29,7 @@ func HaveCRDs(client clientset.Interface, expectedCRDs []string) error {
 	clientAPIExtensionV1beta1 := client.ApiextensionsV1beta1()
 	for _, crd := range expectedCRDs {
 		klog.V(1).Infof("Check if %s exists", crd)
-		_, err := clientAPIExtensionV1beta1.CustomResourceDefinitions().Get(crd, metav1.GetOptions{})
+		_, err := clientAPIExtensionV1beta1.CustomResourceDefinitions().Get(context.TODO(), crd, metav1.GetOptions{})
 		if err != nil {
 			klog.V(1).Infof("Error while retrieving crd %s: %s", crd, err.Error())
 			return err
@@ -48,7 +49,7 @@ func HaveDeploymentsInNamespace(client kubernetes.Interface, namespace string, e
 
 	for _, deploymentName := range expectedDeploymentNames {
 		klog.V(1).Infof("Check if deployment %s exists", deploymentName)
-		deployment, err := deployments.Get(deploymentName, metav1.GetOptions{})
+		deployment, err := deployments.Get(context.TODO(), deploymentName, metav1.GetOptions{})
 		if err != nil {
 			klog.V(1).Infof("Error while retrieving deployment %s: %s", deploymentName, err.Error())
 			return err
