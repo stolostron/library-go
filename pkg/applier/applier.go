@@ -94,11 +94,11 @@ func (a *Applier) CreateOrUpdateInPath(
 }
 
 //CreateorUpdateFile create or updates from a file
-func (a *Applier) CreateorUpdateFile(
-	fileName string,
+func (a *Applier) CreateorUpdateAsset(
+	assetName string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateAsset(fileName, values)
+	b, err := a.templateProcessor.TemplateAsset(assetName, values)
 	if err != nil {
 		return err
 	}
