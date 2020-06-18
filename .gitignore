@@ -5,4 +5,7 @@
 vendor
 
 # Files
-
+coverage.out
+gosec.json
+report.json
+.DS_Store

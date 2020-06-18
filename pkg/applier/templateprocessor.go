@@ -60,7 +60,7 @@ var defaultKindsOrder = []string{
 
 //NewTemplateProcessor creates a new applier
 //reader: The TemplateReader to use to read the templates
-//
+//options: The possible options for the templateprocessor
 func NewTemplateProcessor(
 	reader TemplateReader,
 	options *Options,
@@ -80,7 +80,7 @@ func NewTemplateProcessor(
 	}, nil
 }
 
-//TemplateAssets render the given templates with the provided config
+//TemplateAssets render the given templates with the provided values
 //The assets are not sorted
 func (tp *TemplateProcessor) TemplateAssets(templateNames []string, values interface{}) ([][]byte, error) {
 	results := make([][]byte, len(templateNames))
