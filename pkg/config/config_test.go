@@ -3,6 +3,9 @@
 package config
 
 import (
+	"os"
+	"os/user"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -15,6 +18,13 @@ func TestLoadConfig(t *testing.T) {
 	apiConfig, err := clientcmd.LoadFromFile(kubeconfigPath)
 	if err != nil {
 		t.Error(err)
+	}
+
+	userconfigexists := true
+	if usr, err := user.Current(); err == nil {
+		if _, err := os.Stat(filepath.Join(usr.HomeDir, ".kube", "config")); os.IsNotExist(err) {
+			userconfigexists = false
+		}
 	}
 
 	config, err := clientcmd.NewDefaultClientConfig(
@@ -86,7 +96,7 @@ func TestLoadConfig(t *testing.T) {
 				context:    "",
 			},
 			want:    nil,
-			wantErr: false,
+			wantErr: !userconfigexists,
 		},
 	}
 	for _, tt := range tests {
