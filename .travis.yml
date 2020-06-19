@@ -12,13 +12,14 @@ addons:
   sonarcloud:
     organization: "open-cluster-management"
     token:
-      secure: "GTwvxkCBtPYRBlJeucjiCVWvwIwZ3EBH3hu83q9yVSjjgbg6Ge2gFY/ocWLowyrAxynxzAChvlCvtEuEO44iuBFaKr38036q+4v6ysDQWO6AqU+NMThAhtGiJIJsJjtyxupgw+z6OUNFtQIIUlGYVPO7SZvj/Q7D7wYKTHgMxBRk/i9GYol/unZA6qThgI628KstPR5zEI5itW3qECJSzlm385K07c+XYCWb4FXc6zhlAHXvbT5mLzuW1xW2ipcxvRAP73N2ARUWhoDbUfiZsK0HaYwBN6MtLsCq+u6i5f8KcmwjNKqZxbldlOWtebQ3v2VHt67gUvdpMwPaqBoqKMauYoUpAtfvvhAmeWo4M58AwDn9FJuSdFyZfSjI7MLofrs2NKUdx/RETQWVYNXnKLI+AThgXZXTxDBdnW+g5nOYoYOUI9R7/i0gTnJekHQYdLbN2vkii2ryVrn8F7hp1wuLmrJKgD7lurbLkEsAZhxmFBoBVHtOhXzYkpC4DmNCanuDPmRmNm7ifasLDtU5C8cWRzDs/9L1HkCKbeaTTCiXD8dwJNH5n6jMAPMwYumJ5B2NucZQPLhngUGZ/Bw7aNO02zMKmx/BCBUN3hMfCSXLrmQgW6woPorcJ4sjs2fn5PrqsXeqK/yktdJjkkczDSC+aINZfmbq3UkL6gaL5Q4="
+      secure: "ap8sv1Ab1xbW1B4vazSKfSHEsypSSjkzw1LzQo/pmRfXD3keof9IRupZzDGDRcRneGYywQcm2W+x/Nu3MPrqO5VeKrgA3UUaJ6vmaESSzo0RaGxGQVX0YS7LaWu2Gavis01v0Jlb29yk3GkdwMWSe0kDEdKLzLMiPwJRdAWUoWImEYqSu6O+7bO+3mKXCpeGbsrPnk4rXI7kyiGaR+GBWvuoGgSeGjARurbxIgK/TpFRX16nXduDsYyO+JmsUDW6hrTsnvk4YsuDOr2jJk2L7OtxhPplKtkUfPqrfGVI4NHQ49zx9DvriXNpNxVwMN1ROvbTom+KusUJMyhmfH7aePxIomG02O/yTEOuiNXcqfDAA3SOTnNj2NLqhO9+LR+8fNbd36kWiMsrNbfqVXgzW9/AMjyBJrSyAliCuvkFm4K4AaBOPg3TptgjTMh+mar7oP6fZp3HQGxW/bEUtlXg7+ABvvxZssulQK/cmeYELdDyt8gEPvN5lKWfVtn9e4kz/iyMUxDrAzoVH/djV1PiNkOeLbmIMBsecplbkCOAJB12uDhXUZp69+ltGtQyFTI6NwngiKHrDAa+IjUjtW+6LivkHW/ZUUBXfL5o9iXzX93R37mzjPmTH887uHeLsP38dREBaECx60ckz8xqn8fT9xD/fUWq02U7ApqetYf6T00="
 
 stages:
   - unit-test
 
 before_script:
   - git config --global url.git@github.com:open-cluster-management/.insteadOf https://github.com/open-cluster-management/
+  - make deps
 
 jobs:
   include:
@@ -26,3 +27,4 @@ jobs:
       name: "Run unit tests"
       script:
         - make test
+        - make sonar/go

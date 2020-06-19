@@ -1,0 +1,4 @@
+apiVersion: fake/v1
+kind: Fake
+metadata:
+  name: {{ .Values }}

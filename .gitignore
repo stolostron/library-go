@@ -3,6 +3,10 @@
 .go
 .vscode
 vendor
+test/unit/coverage
 
 # Files
-
+coverage.out
+gosec.json
+report.json
+.DS_Store

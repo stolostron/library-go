@@ -88,6 +88,43 @@ func (a *Applier) CreateOrUpdateInPath(
 	if err != nil {
 		return err
 	}
+	return a.CreateOrUpdates(us)
+}
+
+//CreateOrUpdateYamls create or update all resources defined in the assets.
+//The asserts are separated by the delimiter (ie: "---" for yamls)
+func (a *Applier) CreateOrUpdateAssets(
+	assets []byte,
+	values interface{},
+	delimiter string,
+) error {
+	us, err := a.templateProcessor.TemplateBytesUnstructured(assets, values, delimiter)
+	if err != nil {
+		return err
+	}
+	return a.CreateOrUpdates(us)
+}
+
+//CreateorUpdateFile create or updates an asset
+func (a *Applier) CreateOrUpdateAsset(
+	assetName string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateAsset(assetName, values)
+	if err != nil {
+		return err
+	}
+	u, err := a.templateProcessor.BytesToUnstructured(b)
+	if err != nil {
+		return err
+	}
+	return a.CreateOrUpdate(u)
+}
+
+//CreateOrUpdates an array of unstructured.Unstructured
+func (a *Applier) CreateOrUpdates(
+	us []*unstructured.Unstructured,
+) error {
 	//Create the unstructured items if they don't exist yet
 	for _, u := range us {
 		err := a.CreateOrUpdate(u)
