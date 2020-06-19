@@ -11,6 +11,14 @@ import (
 	"k8s.io/klog"
 )
 
+//LoadConfig loads the kubeconfig and returns a *rest.Config
+//url: The url of the server
+//kubeconfig: The path of the kubeconfig, if empty the KUBECONFIG environment variable will be used.
+//context: The context to use to search the *rest.Config in the kubeconfig file, if empty the current-context will be used.
+//Search in the following order: provided kubeconfig path, KUBECONFIG environment variable, in the cluster, in the user home directory.
+//If the context is not provided and the url is not provided, it returns a *rest.Config the for the current-context.
+//If the context is not provided but the url provided, it returns a *rest.Config for the server identified by the url.
+//If the context is provided, it returns a *rest.Config for the provided context.
 func LoadConfig(
 	url,
 	kubeconfig,

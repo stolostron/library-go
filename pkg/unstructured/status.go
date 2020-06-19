@@ -8,6 +8,8 @@ import (
 
 //GetCondition returns the condition with type typeString
 // returns error if the condition is not found
+//u: The *unstructured.Unstructured object to search in
+//typeString: the type to search
 func GetCondition(
 	u *unstructured.Unstructured,
 	typeString string,

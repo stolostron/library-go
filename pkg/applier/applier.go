@@ -91,7 +91,7 @@ func (a *Applier) CreateOrUpdateInPath(
 	return a.CreateOrUpdates(us)
 }
 
-//CreateOrUpdateYamls create or update all resources defined in the assets.
+//CreateOrUpdateAssets create or update all resources defined in the assets.
 //The asserts are separated by the delimiter (ie: "---" for yamls)
 func (a *Applier) CreateOrUpdateAssets(
 	assets []byte,
