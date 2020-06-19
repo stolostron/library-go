@@ -1,16 +1,22 @@
 
 
 SCRIPTS_PATH ?= build
+
+# Install software dependencies
+INSTALL_DEPENDENCIES ?= ${SCRIPTS_PATH}/install-dependencies.sh
 # The command to run to execute unit tests
 UNIT_TEST_COMMAND ?= ${SCRIPTS_PATH}/run-unit-tests.sh
 
 export GOPACKAGES ?= ./pkg/...
 
+.PHONY: deps
+deps:
+   $(INSTALL_DEPENDENCIES)
+   
 .PHONY: test
 ## Runs go unit tests
 test:
 	$(UNIT_TEST_COMMAND)
-	# go test -v $(GOPACKAGES)
 
 .PHONY: go/gosec-install
 ## Installs latest release of Gosec

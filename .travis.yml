@@ -14,6 +14,9 @@ addons:
     token:
       secure: "ap8sv1Ab1xbW1B4vazSKfSHEsypSSjkzw1LzQo/pmRfXD3keof9IRupZzDGDRcRneGYywQcm2W+x/Nu3MPrqO5VeKrgA3UUaJ6vmaESSzo0RaGxGQVX0YS7LaWu2Gavis01v0Jlb29yk3GkdwMWSe0kDEdKLzLMiPwJRdAWUoWImEYqSu6O+7bO+3mKXCpeGbsrPnk4rXI7kyiGaR+GBWvuoGgSeGjARurbxIgK/TpFRX16nXduDsYyO+JmsUDW6hrTsnvk4YsuDOr2jJk2L7OtxhPplKtkUfPqrfGVI4NHQ49zx9DvriXNpNxVwMN1ROvbTom+KusUJMyhmfH7aePxIomG02O/yTEOuiNXcqfDAA3SOTnNj2NLqhO9+LR+8fNbd36kWiMsrNbfqVXgzW9/AMjyBJrSyAliCuvkFm4K4AaBOPg3TptgjTMh+mar7oP6fZp3HQGxW/bEUtlXg7+ABvvxZssulQK/cmeYELdDyt8gEPvN5lKWfVtn9e4kz/iyMUxDrAzoVH/djV1PiNkOeLbmIMBsecplbkCOAJB12uDhXUZp69+ltGtQyFTI6NwngiKHrDAa+IjUjtW+6LivkHW/ZUUBXfL5o9iXzX93R37mzjPmTH887uHeLsP38dREBaECx60ckz8xqn8fT9xD/fUWq02U7ApqetYf6T00="
 
+before_script:
+  - make deps
+
 stages:
   - unit-test
 
