@@ -11,8 +11,8 @@ export GOPACKAGES ?= ./pkg/...
 
 .PHONY: deps
 deps:
-   $(INSTALL_DEPENDENCIES)
-   
+	$(INSTALL_DEPENDENCIES)
+
 .PHONY: test
 ## Runs go unit tests
 test:
