@@ -79,7 +79,7 @@ func NewTemplateProcessor(
 }
 
 //TemplateAssets render the given templates with the provided values
-//The assets are not sorted
+//The assets are not sorted and returned in the same template provided order
 func (tp *TemplateProcessor) TemplateAssets(
 	templateNames []string,
 	values interface{},
