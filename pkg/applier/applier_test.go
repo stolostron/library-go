@@ -1,16 +1,18 @@
-// Copyright (c) 2020 Red Hat, Inc.
-
 package applier
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -86,6 +88,95 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 				}
 				if rb.RoleRef.Name != "system:test:"+values.ManagedClusterName {
 					t.Errorf("Expecting %s got %s", "system:test:"+values.ManagedClusterName, rb.RoleRef.Name)
+				}
+			}
+		})
+	}
+}
+
+func TestNewApplier(t *testing.T) {
+	tp := &TemplateProcessor{}
+	client := fake.NewFakeClient([]runtime.Object{}...)
+	owner := &corev1.Secret{}
+	scheme := &runtime.Scheme{}
+	merger := func(current,
+		new *unstructured.Unstructured,
+	) (
+		future *unstructured.Unstructured,
+		update bool,
+	) {
+		return nil, true
+	}
+	type args struct {
+		templateProcessor *TemplateProcessor
+		client            crclient.Client
+		owner             metav1.Object
+		scheme            *runtime.Scheme
+		merger            Merger
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Applier
+		wantErr bool
+	}{
+		{
+			name: "Succeed",
+			args: args{
+				templateProcessor: tp,
+				client:            client,
+				owner:             owner,
+				scheme:            scheme,
+				merger:            merger,
+			},
+			want: &Applier{
+				templateProcessor: tp,
+				client:            client,
+				owner:             owner,
+				scheme:            scheme,
+				merger:            merger,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Failed no templateProcessor",
+			args: args{
+				templateProcessor: nil,
+				client:            client,
+				owner:             owner,
+				scheme:            scheme,
+				merger:            merger,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Failed no client",
+			args: args{
+				templateProcessor: tp,
+				client:            nil,
+				owner:             owner,
+				scheme:            scheme,
+				merger:            merger,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewApplier(tt.args.templateProcessor, tt.args.client, tt.args.owner, tt.args.scheme, tt.args.merger)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewApplier() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != nil {
+				if !reflect.DeepEqual(got.templateProcessor, tt.want.templateProcessor) &&
+					!reflect.DeepEqual(got.client, tt.want.client) &&
+					!reflect.DeepEqual(got.owner, tt.want.owner) &&
+					!reflect.DeepEqual(got.scheme, tt.want.scheme) &&
+					!reflect.DeepEqual(got.merger, tt.want.merger) {
+					t.Errorf("NewApplier() = %v, want %v", got, tt.want)
 				}
 			}
 		})

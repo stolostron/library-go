@@ -1,5 +1,3 @@
-// Copyright (c) 2020 Red Hat, Inc.
-
 package applier
 
 import (
@@ -14,8 +12,10 @@ type YamlFileReader struct {
 	rootDirectory string
 }
 
-func (r *YamlFileReader) Asset(name string) ([]byte, error) {
-	return ioutil.ReadFile(filepath.Join(r.rootDirectory, name))
+func (r *YamlFileReader) Asset(
+	name string,
+) ([]byte, error) {
+	return ioutil.ReadFile(filepath.Clean(filepath.Join(r.rootDirectory, name)))
 }
 
 func (r *YamlFileReader) AssetNames() ([]string, error) {
@@ -35,11 +35,15 @@ func (r *YamlFileReader) AssetNames() ([]string, error) {
 	return keys, err
 }
 
-func (*YamlFileReader) ToJSON(b []byte) ([]byte, error) {
+func (*YamlFileReader) ToJSON(
+	b []byte,
+) ([]byte, error) {
 	return yaml.YAMLToJSON(b)
 }
 
-func NewYamlFileReader(rootDirectory string) *YamlFileReader {
+func NewYamlFileReader(
+	rootDirectory string,
+) *YamlFileReader {
 	return &YamlFileReader{
 		rootDirectory: rootDirectory,
 	}

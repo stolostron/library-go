@@ -1,5 +1,3 @@
-// Copyright (c) 2020 Red Hat, Inc.
-
 package config
 
 import (
@@ -13,7 +11,11 @@ import (
 	"k8s.io/klog"
 )
 
-func LoadConfig(url, kubeconfig, context string) (*rest.Config, error) {
+func LoadConfig(
+	url,
+	kubeconfig,
+	context string,
+) (*rest.Config, error) {
 	if kubeconfig == "" {
 		kubeconfig = os.Getenv("KUBECONFIG")
 	}
@@ -48,7 +50,11 @@ func LoadConfig(url, kubeconfig, context string) (*rest.Config, error) {
 	}
 	// If no in-cluster config, try the default location in the user's home directory.
 	if usr, err := user.Current(); err == nil {
-		klog.V(5).Infof("clientcmd.BuildConfigFromFlags for url %s using %s\n", url, filepath.Join(usr.HomeDir, ".kube", "config"))
+		klog.V(5).Infof("clientcmd.BuildConfigFromFlags for url %s using %s\n",
+			url,
+			filepath.Join(usr.HomeDir,
+				".kube",
+				"config"))
 		if c, err := clientcmd.BuildConfigFromFlags(url, filepath.Join(usr.HomeDir, ".kube", "config")); err == nil {
 			return c, nil
 		}

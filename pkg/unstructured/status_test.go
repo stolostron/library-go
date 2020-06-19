@@ -25,6 +25,15 @@ func TestGetCondition(t *testing.T) {
 			},
 		},
 	}
+	unostatus := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "cluster.open-cluster-management.io/v1",
+			"kind":       "ManagedCluster",
+			"metadata": map[string]interface{}{
+				"name": "myname",
+			},
+		},
+	}
 	type args struct {
 		u          *unstructured.Unstructured
 		typeString string
@@ -51,6 +60,24 @@ func TestGetCondition(t *testing.T) {
 			name: "condition not found",
 			args: args{
 				u:          u,
+				typeString: "notExists",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "status not found",
+			args: args{
+				u:          unostatus,
+				typeString: "notExists",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "unstructured is nil",
+			args: args{
+				u:          nil,
 				typeString: "notExists",
 			},
 			want:    nil,

@@ -1,5 +1,3 @@
-// Copyright (c) 2020 Red Hat, Inc.
-
 package applier
 
 import (
@@ -24,7 +22,7 @@ func TestYamlFileReader_Asset(t *testing.T) {
 		{
 			name: "success",
 			fields: fields{
-				rootDirectory: "../../test/unit-test/resources/yamlfilereader",
+				rootDirectory: "../../test/unit/resources/yamlfilereader",
 			},
 			args: args{
 				name: "filereader.yaml",
@@ -66,7 +64,7 @@ func TestYamlFileReader_AssetNames(t *testing.T) {
 		{
 			name: "success",
 			fields: fields{
-				rootDirectory: "../../test/unit-test/resources/yamlfilereader",
+				rootDirectory: "../../test/unit/resources/yamlfilereader",
 			},
 			want:    []string{"filereader.yaml"},
 			wantErr: false,

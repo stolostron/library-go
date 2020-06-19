@@ -1,5 +1,3 @@
-// Copyright (c) 2020 Red Hat, Inc.
-
 package config
 
 import (
@@ -14,7 +12,7 @@ import (
 )
 
 func TestLoadConfig(t *testing.T) {
-	kubeconfigPath := "../../test/unit-test/resources/config/kubeconfig.yaml"
+	kubeconfigPath := "../../test/unit/resources/config/kubeconfig.yaml"
 	apiConfig, err := clientcmd.LoadFromFile(kubeconfigPath)
 	if err != nil {
 		t.Error(err)
@@ -30,10 +28,6 @@ func TestLoadConfig(t *testing.T) {
 	config, err := clientcmd.NewDefaultClientConfig(
 		*apiConfig,
 		&clientcmd.ConfigOverrides{}).ClientConfig()
-	if err != nil {
-		t.Error(err)
-	}
-
 	if err != nil {
 		t.Error(err)
 	}

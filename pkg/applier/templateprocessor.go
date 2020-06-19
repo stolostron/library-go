@@ -1,5 +1,3 @@
-// Copyright (c) 2020 Red Hat, Inc.
-
 package applier
 
 import (
@@ -82,7 +80,10 @@ func NewTemplateProcessor(
 
 //TemplateAssets render the given templates with the provided values
 //The assets are not sorted
-func (tp *TemplateProcessor) TemplateAssets(templateNames []string, values interface{}) ([][]byte, error) {
+func (tp *TemplateProcessor) TemplateAssets(
+	templateNames []string,
+	values interface{},
+) ([][]byte, error) {
 	results := make([][]byte, len(templateNames))
 	for i, templateName := range templateNames {
 		result, err := tp.TemplateAsset(templateName, values)
@@ -95,7 +96,10 @@ func (tp *TemplateProcessor) TemplateAssets(templateNames []string, values inter
 }
 
 //TemplateAsset render the given template with the provided values
-func (tp *TemplateProcessor) TemplateAsset(templateName string, values interface{}) ([]byte, error) {
+func (tp *TemplateProcessor) TemplateAsset(
+	templateName string,
+	values interface{},
+) ([]byte, error) {
 	b, err := tp.reader.Asset(templateName)
 	if err != nil {
 		return nil, err
@@ -104,7 +108,10 @@ func (tp *TemplateProcessor) TemplateAsset(templateName string, values interface
 }
 
 //TemplateBytes render the given template with the provided values
-func (tp *TemplateProcessor) TemplateBytes(b []byte, values interface{}) ([]byte, error) {
+func (tp *TemplateProcessor) TemplateBytes(
+	b []byte,
+	values interface{},
+) ([]byte, error) {
 	var buf bytes.Buffer
 	tmpl, err := template.New("yamls").Parse(string(b))
 	if err != nil {
@@ -119,7 +126,12 @@ func (tp *TemplateProcessor) TemplateBytes(b []byte, values interface{}) ([]byte
 
 // TemplateAssetsInPathYaml returns all assets in a path using the provided config.
 // The assets are sorted following the order defined in variable kindsOrder
-func (tp *TemplateProcessor) TemplateAssetsInPathYaml(path string, excluded []string, recursive bool, values interface{}) ([][]byte, error) {
+func (tp *TemplateProcessor) TemplateAssetsInPathYaml(
+	path string,
+	excluded []string,
+	recursive bool,
+	values interface{},
+) ([][]byte, error) {
 	us, err := tp.TemplateAssetsInPathUnstructured(path, excluded, recursive, values)
 	if err != nil {
 		return nil, err
@@ -143,7 +155,11 @@ func (tp *TemplateProcessor) TemplateAssetsInPathYaml(path string, excluded []st
 
 //AssetNamesInPath returns all asset names with a given path and
 // subpath if recursive is set to true, it excludes the assets contained in the excluded parameter
-func (tp *TemplateProcessor) AssetNamesInPath(path string, excluded []string, recursive bool) ([]string, error) {
+func (tp *TemplateProcessor) AssetNamesInPath(
+	path string,
+	excluded []string,
+	recursive bool,
+) ([]string, error) {
 	results := make([]string, 0)
 	names, err := tp.reader.AssetNames()
 	if err != nil {
@@ -175,7 +191,11 @@ func isExcluded(name string, excluded []string) bool {
 
 //Assets returns all assets with a given path and
 // subpath if recursive set to true, it excludes the assets contained in the excluded parameter
-func (tp *TemplateProcessor) Assets(path string, excluded []string, recursive bool) (payloads [][]byte, err error) {
+func (tp *TemplateProcessor) Assets(
+	path string,
+	excluded []string,
+	recursive bool,
+) (payloads [][]byte, err error) {
 	names, err := tp.AssetNamesInPath(path, excluded, recursive)
 	if err != nil {
 		return nil, err

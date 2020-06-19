@@ -1,9 +1,16 @@
 
 
+SCRIPTS_PATH ?= build
+# The command to run to execute unit tests
+UNIT_TEST_COMMAND ?= ${SCRIPTS_PATH}/run-unit-tests.sh
+
+export GOPACKAGES ?= ./pkg/...
+
 .PHONY: test
 ## Runs go unit tests
 test:
-	go test -v ./...
+	$(UNIT_TEST_COMMAND)
+	# go test -v $(GOPACKAGES)
 
 .PHONY: go/gosec-install
 ## Installs latest release of Gosec

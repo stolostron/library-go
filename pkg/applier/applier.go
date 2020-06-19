@@ -1,5 +1,3 @@
-// Copyright (c) 2020 Red Hat, Inc.
-
 package applier
 
 import (
@@ -124,7 +122,9 @@ func (a *Applier) CreateOrUpdateAsset(
 }
 
 //CreateOrUpdates an array of unstructured.Unstructured
-func (a *Applier) CreateOrUpdates(us []*unstructured.Unstructured) error {
+func (a *Applier) CreateOrUpdates(
+	us []*unstructured.Unstructured,
+) error {
 	//Create the unstructured items if they don't exist yet
 	for _, u := range us {
 		err := a.CreateOrUpdate(u)

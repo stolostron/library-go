@@ -1,4 +1,3 @@
-// Copyright (c) 2020 Red Hat, Inc.
 package client
 
 import (
@@ -16,80 +15,80 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewDefaultClient(kubeconfig string, options client.Options) client.Client {
+func NewDefaultClient(kubeconfig string, options client.Options) (client.Client, error) {
 	return NewClient("", kubeconfig, "", options)
 }
 
-func NewClient(url, kubeconfig, context string, options client.Options) client.Client {
+func NewClient(url, kubeconfig, context string, options client.Options) (client.Client, error) {
 	klog.V(5).Infof("Create kubeclient for url %s using kubeconfig path %s\n", url, kubeconfig)
 	config, err := config.LoadConfig(url, kubeconfig, context)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	client, err := client.New(config, options)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return client
+	return client, nil
 }
 
-func NewDefaultKubeClient(kubeconfig string) kubernetes.Interface {
+func NewDefaultKubeClient(kubeconfig string) (kubernetes.Interface, error) {
 	return NewKubeClient("", kubeconfig, "")
 }
 
-func NewKubeClient(url, kubeconfig, context string) kubernetes.Interface {
+func NewKubeClient(url, kubeconfig, context string) (kubernetes.Interface, error) {
 	klog.V(5).Infof("Create kubeclient for url %s using kubeconfig path %s\n", url, kubeconfig)
 	config, err := config.LoadConfig(url, kubeconfig, context)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return clientset
+	return clientset, nil
 }
 
-func NewDefaultKubeClientDynamic(kubeconfig string) dynamic.Interface {
+func NewDefaultKubeClientDynamic(kubeconfig string) (dynamic.Interface, error) {
 	return NewKubeClientDynamic("", kubeconfig, "")
 }
 
-func NewKubeClientDynamic(url, kubeconfig, context string) dynamic.Interface {
+func NewKubeClientDynamic(url, kubeconfig, context string) (dynamic.Interface, error) {
 	klog.V(5).Infof("Create kubeclient dynamic for url %s using kubeconfig path %s\n", url, kubeconfig)
 	config, err := config.LoadConfig(url, kubeconfig, context)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	clientset, err := dynamic.NewForConfig(config)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return clientset
+	return clientset, nil
 }
 
-func NewDefaultKubeClientAPIExtension(kubeconfig string) clientset.Interface {
+func NewDefaultKubeClientAPIExtension(kubeconfig string) (clientset.Interface, error) {
 	return NewKubeClientAPIExtension("", kubeconfig, "")
 }
 
-func NewKubeClientAPIExtension(url, kubeconfig, context string) clientset.Interface {
+func NewKubeClientAPIExtension(url, kubeconfig, context string) (clientset.Interface, error) {
 	klog.V(5).Infof("Create kubeclient apiextension for url %s using kubeconfig path %s\n", url, kubeconfig)
 	config, err := config.LoadConfig(url, kubeconfig, context)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	clientset, err := clientset.NewForConfig(config)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return clientset
+	return clientset, nil
 }
 
 func HaveServerResources(client clientset.Interface, expectedAPIGroups []string) error {
