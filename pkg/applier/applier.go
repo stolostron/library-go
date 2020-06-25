@@ -66,11 +66,11 @@ type Merger func(current,
 	update bool,
 )
 
-//DefaultKubernetesMereger merges kubernetes runtime.Object
+//DefaultKubernetesMerger merges kubernetes runtime.Object
 //It merges the spec, rules, roleRef, subjects root attribute of a runtime.Object
 //For example a CLusterRoleBinding has a subjects and roleRef fields and so the old
 //subjects and roleRef fields from the ClusterRoleBinding will be replaced by the new values.
-var DefaultKubernetesMereger Merger = func(current,
+var DefaultKubernetesMerger Merger = func(current,
 	new *unstructured.Unstructured,
 ) (
 	future *unstructured.Unstructured,
