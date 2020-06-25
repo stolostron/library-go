@@ -4,6 +4,7 @@ import (
 	"context"
 	goerr "errors"
 	"fmt"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,6 +65,39 @@ type Merger func(current,
 	future *unstructured.Unstructured,
 	update bool,
 )
+
+//DefaultKubernetesMereger merges kubernetes runtime.Object
+//It merges the spec, rules, roleRef, subjects root attribute of a runtime.Object
+//For example a CLusterRoleBinding has a subjects and roleRef fields and so the old
+//subjects and roleRef fields from the ClusterRoleBinding will be replaced by the new values.
+var DefaultKubernetesMereger Merger = func(current,
+	new *unstructured.Unstructured,
+) (
+	future *unstructured.Unstructured,
+	update bool,
+) {
+	if spec, ok := new.Object["spec"]; ok &&
+		!reflect.DeepEqual(spec, current.Object["spec"]) {
+		update = true
+		current.Object["spec"] = spec
+	}
+	if rules, ok := new.Object["rules"]; ok &&
+		!reflect.DeepEqual(rules, current.Object["rules"]) {
+		update = true
+		current.Object["rules"] = rules
+	}
+	if roleRef, ok := new.Object["roleRef"]; ok &&
+		!reflect.DeepEqual(roleRef, current.Object["roleRef"]) {
+		update = true
+		current.Object["roleRef"] = roleRef
+	}
+	if subjects, ok := new.Object["subjects"]; ok &&
+		!reflect.DeepEqual(subjects, current.Object["subjects"]) {
+		update = true
+		current.Object["subjects"] = subjects
+	}
+	return current, update
+}
 
 //CreateOrUpdateInPath creates or updates the assets found in the path and
 // subpath if recursive is set to true.
@@ -135,7 +169,9 @@ func (a *Applier) CreateOrUpdates(
 	return nil
 }
 
-//CreateOrUpdate creates or updates an unstructured (if they don't exist yet) found in the path and
+//CreateOrUpdate creates or updates an unstructured object.
+//It will returns an error if it failed and also if it needs to update the object
+//and the applier.Merger is not defined.
 func (a *Applier) CreateOrUpdate(
 	u *unstructured.Unstructured,
 ) error {
@@ -177,7 +213,10 @@ func (a *Applier) CreateOrUpdate(
 			"Name", current.GetName(),
 			"Namespace", current.GetNamespace())
 		if a.merger == nil {
-			return fmt.Errorf("Unable to update as the merger is nil")
+			return fmt.Errorf("Unable to update %s/%s of Kind %s the merger is nil",
+				current.GetKind(),
+				current.GetNamespace(),
+				current.GetName())
 		}
 		future, update := a.merger(current, u)
 		if update {
