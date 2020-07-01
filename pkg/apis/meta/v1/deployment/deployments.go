@@ -19,11 +19,17 @@ type MissingDeployment struct {
 }
 
 //HasDeploymentsInNamespace returns false and the list of deployment if some deployments are missing in the namespace.
+//It checks also if the number of replicas are meet
 //It returns an error if an error occurs while retreiving a deployment
 //client: the client to use
 //namespace: The namespace to search in
 //expectedDeploymentNames: The deployment names to search
-func HasDeploymentsInNamespace(client kubernetes.Interface, namespace string, expectedDeploymentNames []string) (has bool, missingDeployments []MissingDeployment, err error) {
+func HasDeploymentsInNamespace(client kubernetes.Interface,
+	namespace string,
+	expectedDeploymentNames []string) (
+	has bool,
+	missingDeployments []MissingDeployment,
+	err error) {
 	missingDeployments = make([]MissingDeployment, 0)
 	has = true
 	versionInfo, errDisco := client.Discovery().ServerVersion()
@@ -40,6 +46,7 @@ func HasDeploymentsInNamespace(client kubernetes.Interface, namespace string, ex
 			Name: deploymentName,
 		}
 		missingDeploymentToBeAdded := false
+		//Check if deployment exists
 		deployment, errGet := deployments.Get(context.TODO(), deploymentName, metav1.GetOptions{})
 		if errGet != nil {
 			if errors.IsNotFound(errGet) {
@@ -52,6 +59,7 @@ func HasDeploymentsInNamespace(client kubernetes.Interface, namespace string, ex
 				return false, missingDeployments, errGet
 			}
 		}
+		//Check if the replicas are ready
 		if deployment.Status.Replicas != deployment.Status.ReadyReplicas {
 			has = false
 			missingDeploymentToBeAdded = true
@@ -61,6 +69,7 @@ func HasDeploymentsInNamespace(client kubernetes.Interface, namespace string, ex
 				deployment.Status.ReadyReplicas)
 			klog.Errorln(missingDeployment.ReadyReplicatError)
 		}
+		//Check if the minimum replicas is meet
 		for _, condition := range deployment.Status.Conditions {
 			if condition.Reason == "MinimumReplicasAvailable" {
 				if condition.Status != corev1.ConditionTrue {
