@@ -25,7 +25,7 @@ func HasCRDs(client clientset.Interface, expectedCRDs []string) (has bool, missi
 				missingCRDs = append(missingCRDs, crd)
 				has = false
 			} else {
-				klog.V(1).Infof("Error while retrieving crd %s: %s", crd, err.Error())
+				klog.V(1).Infof("Error while retrieving crd %s: %s", crd, errGet.Error())
 				return false, missingCRDs, errGet
 			}
 		}
