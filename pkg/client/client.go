@@ -130,6 +130,7 @@ func HaveServerResources(client clientset.Interface, expectedAPIGroups []string)
 	return nil
 }
 
+//Deprecated: Use https://github.com/open-cluster-management/library-go/pkg/apis/meta/v1/crd#HaveCRDs
 //HaveCRDs returns an error if all provided CRDs are not installed
 //client: the client to use
 //expectedCRDs: The list of expected CRDS to find
@@ -146,6 +147,7 @@ func HaveCRDs(client clientset.Interface, expectedCRDs []string) error {
 	return nil
 }
 
+//Deprecated: Use https://github.com/open-cluster-management/library-go/pkg/apis/meta/v1/deployment#HaveDeploymentsInNamespace
 //HaveDeploymentsInNamespace returns an error if all provided deployment are not installed in the given namespace
 //client: the client to use
 //namespace: The namespace to search in
