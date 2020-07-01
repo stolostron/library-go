@@ -14,8 +14,8 @@ import (
 
 type MissingDeployment struct {
 	Name                           string
-	ReadyReplicatError             error
-	MinimumlReplicatAvailableError error
+	ReadyReplicasError             error
+	MinimumlReplicasAvailableError error
 }
 
 //HasDeploymentsInNamespace returns false and the list of deployment if some deployments are missing in the namespace.
@@ -63,11 +63,11 @@ func HasDeploymentsInNamespace(client kubernetes.Interface,
 		if deployment.Status.Replicas != deployment.Status.ReadyReplicas {
 			has = false
 			missingDeploymentToBeAdded = true
-			missingDeployment.ReadyReplicatError = fmt.Errorf("Expect %d for deployment %s but got %d Ready replicas",
+			missingDeployment.ReadyReplicasError = fmt.Errorf("Expect %d for deployment %s but got %d Ready replicas",
 				deployment.Status.Replicas,
 				deploymentName,
 				deployment.Status.ReadyReplicas)
-			klog.Errorln(missingDeployment.ReadyReplicatError)
+			klog.Errorln(missingDeployment.ReadyReplicasError)
 		}
 		//Check if the minimum replicas is meet
 		for _, condition := range deployment.Status.Conditions {
@@ -75,10 +75,10 @@ func HasDeploymentsInNamespace(client kubernetes.Interface,
 				if condition.Status != corev1.ConditionTrue {
 					has = false
 					missingDeploymentToBeAdded = true
-					missingDeployment.MinimumlReplicatAvailableError = fmt.Errorf("Expect %s for deployment %s but got %s",
+					missingDeployment.MinimumlReplicasAvailableError = fmt.Errorf("Expect %s for deployment %s but got %s",
 						condition.Status,
 						deploymentName, corev1.ConditionTrue)
-					klog.Errorln(missingDeployment.MinimumlReplicatAvailableError.Error())
+					klog.Errorln(missingDeployment.MinimumlReplicasAvailableError.Error())
 				}
 			}
 		}

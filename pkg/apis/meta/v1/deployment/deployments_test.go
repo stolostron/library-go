@@ -106,7 +106,7 @@ func Test_HasDeploymentsInNamespace(t *testing.T) {
 			wantMissingDeployments: []MissingDeployment{
 				{
 					Name: deploymentNoMinAvailable.Name,
-					ReadyReplicatError: fmt.Errorf("Expect %d for deployment %s but got %d Ready replicas",
+					ReadyReplicasError: fmt.Errorf("Expect %d for deployment %s but got %d Ready replicas",
 						deploymentNotReady.Status.Replicas,
 						deploymentNotReady.Name,
 						deploymentNotReady.Status.ReadyReplicas),
@@ -125,7 +125,7 @@ func Test_HasDeploymentsInNamespace(t *testing.T) {
 			wantMissingDeployments: []MissingDeployment{
 				{
 					Name: deploymentNoMinAvailable.Name,
-					MinimumlReplicatAvailableError: fmt.Errorf("Expect %s for deployment %s but got %s",
+					MinimumlReplicasAvailableError: fmt.Errorf("Expect %s for deployment %s but got %s",
 						corev1.ConditionFalse,
 						deploymentNoMinAvailable.Name, corev1.ConditionTrue),
 				},
