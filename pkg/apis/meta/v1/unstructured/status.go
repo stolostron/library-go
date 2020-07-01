@@ -6,11 +6,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-//GetCondition returns the condition with type typeString
+//GetConditionByType returns the condition with type typeString
 // returns error if the condition is not found
 //u: The *unstructured.Unstructured object to search in
 //typeString: the type to search
-func GetCondition(
+func GetConditionByType(
 	u *unstructured.Unstructured,
 	typeString string,
 ) (map[string]interface{}, error) {

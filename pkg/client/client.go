@@ -1,6 +1,8 @@
 package client
 
 import (
+	"fmt"
+
 	"github.com/open-cluster-management/library-go/pkg/config"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/klog"
@@ -128,12 +130,19 @@ func HaveServerResources(client clientset.Interface, expectedAPIGroups []string)
 }
 
 //Deprecated:
-// Use https://github.com/open-cluster-management/library-go/pkg/apis/meta/v1/crd#HaveCRDs
+// Use https://github.com/open-cluster-management/library-go/pkg/apis/meta/v1/crd#HasCRDs
 //HaveCRDs returns an error if all provided CRDs are not installed
 //client: the client to use
 //expectedCRDs: The list of expected CRDS to find
 func HaveCRDs(client clientset.Interface, expectedCRDs []string) error {
-	return libgocrdv1.HaveCRDs(client, expectedCRDs)
+	has, _, err := libgocrdv1.HasCRDs(client, expectedCRDs)
+	if err != nil {
+		return err
+	}
+	if !has {
+		return fmt.Errorf("Some CRDs are missing")
+	}
+	return nil
 }
 
 //Deprecated:
@@ -146,5 +155,12 @@ func HaveDeploymentsInNamespace(client kubernetes.Interface,
 	namespace string,
 	expectedDeploymentNames []string,
 ) error {
-	return libgodeploymentv1.HaveDeploymentsInNamespace(client, namespace, expectedDeploymentNames)
+	has, _, err := libgodeploymentv1.HasDeploymentsInNamespace(client, namespace, expectedDeploymentNames)
+	if err != nil {
+		return err
+	}
+	if !has {
+		return fmt.Errorf("Some deployments are missing or not ready")
+	}
+	return nil
 }

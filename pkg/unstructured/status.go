@@ -15,5 +15,5 @@ func GetCondition(
 	u *unstructured.Unstructured,
 	typeString string,
 ) (map[string]interface{}, error) {
-	return libgounstructuredv1.GetCondition(u, typeString)
+	return libgounstructuredv1.GetConditionByType(u, typeString)
 }

@@ -11,7 +11,7 @@ require (
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cluster-registry v0.0.6
 	k8s.io/klog v1.0.0
-	k8s.io/kubectl v0.18.4
+	k8s.io/kubectl v0.18.4 // indirect
 	sigs.k8s.io/controller-runtime v0.6.0
 )
 

@@ -1,16 +1,16 @@
 package crd
 
 import (
+	"reflect"
 	"testing"
 
-	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	fakeclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestHaveCRDs(t *testing.T) {
+func TestHasCRDs(t *testing.T) {
 
 	crd := &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
@@ -27,6 +27,8 @@ func TestHaveCRDs(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
+		want    bool
+		want1   []string
 		wantErr bool
 	}{
 		{
@@ -35,6 +37,8 @@ func TestHaveCRDs(t *testing.T) {
 				client:       client,
 				expectedCRDs: []string{"Test"},
 			},
+			want:    true,
+			want1:   []string{},
 			wantErr: false,
 		},
 		{
@@ -43,13 +47,23 @@ func TestHaveCRDs(t *testing.T) {
 				client:       client,
 				expectedCRDs: []string{"Test", "Test2"},
 			},
-			wantErr: true,
+			want:    false,
+			want1:   []string{"Test2"},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := HaveCRDs(tt.args.client, tt.args.expectedCRDs); (err != nil) != tt.wantErr {
-				t.Errorf("HaveCRDs() error = %v, wantErr %v", err, tt.wantErr)
+			got, got1, err := HasCRDs(tt.args.client, tt.args.expectedCRDs)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HasCRDs() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("HasCRDs() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("HasCRDs() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}

@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func TestGetCondition(t *testing.T) {
+func TestGetConditionByType(t *testing.T) {
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "cluster.open-cluster-management.io/v1",
@@ -86,7 +86,7 @@ func TestGetCondition(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetCondition(tt.args.u, tt.args.typeString)
+			got, err := GetConditionByType(tt.args.u, tt.args.typeString)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetCondition() error = %v, wantErr %v", err, tt.wantErr)
 				return
