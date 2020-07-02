@@ -176,7 +176,7 @@ func (a *Applier) CreateOrUpdate(
 	u *unstructured.Unstructured,
 ) error {
 
-	log.Info("Create or update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	log.V(2).Info("Create or update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 	//Set controller ref
 	if a.owner != nil && a.scheme != nil {
 		if err := controllerutil.SetControllerReference(a.owner, u, a.scheme); err != nil {
@@ -194,7 +194,7 @@ func (a *Applier) CreateOrUpdate(
 	errGet = a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
 	if errGet != nil {
 		if errors.IsNotFound(errGet) {
-			log.Info("Create",
+			log.V(2).Info("Create",
 				"Kind", current.GetKind(),
 				"Name", current.GetName(),
 				"Namespace", current.GetNamespace())
@@ -208,7 +208,7 @@ func (a *Applier) CreateOrUpdate(
 			return errGet
 		}
 	} else {
-		log.Info("Update",
+		log.V(2).Info("Update",
 			"Kind", current.GetKind(),
 			"Name", current.GetName(),
 			"Namespace", current.GetNamespace())
@@ -226,7 +226,7 @@ func (a *Applier) CreateOrUpdate(
 				return err
 			}
 		} else {
-			log.Info("No update needed")
+			log.V(2).Info("No update needed")
 		}
 	}
 	return nil
