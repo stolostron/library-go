@@ -12,6 +12,10 @@ type YamlFileReader struct {
 	rootDirectory string
 }
 
+var _ TemplateReader = &YamlFileReader{
+	rootDirectory: "",
+}
+
 func (r *YamlFileReader) Asset(
 	name string,
 ) ([]byte, error) {

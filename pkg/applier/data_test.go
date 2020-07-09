@@ -1,12 +1,14 @@
 package applier
 
-import (
-	"fmt"
-
-	"github.com/ghodss/yaml"
-)
-
-type Test struct{}
+var values = struct {
+	ManagedClusterName          string
+	ManagedClusterNamespace     string
+	BootstrapServiceAccountName string
+}{
+	ManagedClusterName:          "mycluster",
+	ManagedClusterNamespace:     "myclusterns",
+	BootstrapServiceAccountName: "mysa",
+}
 
 var assets = map[string]string{
 	"test/clusterrolebinding": `
@@ -45,37 +47,4 @@ rules:
   resources: ["managedclusters"]
   resourceNames: ["{{ .ManagedClusterName }}"]
   verbs: ["get"]`,
-}
-
-var values = struct {
-	ManagedClusterName          string
-	ManagedClusterNamespace     string
-	BootstrapServiceAccountName string
-}{
-	ManagedClusterName:          "mycluster",
-	ManagedClusterNamespace:     "myclusterns",
-	BootstrapServiceAccountName: "mysa",
-}
-
-func (*Test) Asset(name string) ([]byte, error) {
-	if s, ok := assets[name]; ok {
-		return []byte(s), nil
-	}
-	return nil, fmt.Errorf("Asset %s not found", name)
-}
-
-func (*Test) AssetNames() ([]string, error) {
-	keys := make([]string, 0)
-	for k := range assets {
-		keys = append(keys, k)
-	}
-	return keys, nil
-}
-
-func (*Test) ToJSON(b []byte) ([]byte, error) {
-	return yaml.YAMLToJSON(b)
-}
-
-func NewTestReader() *Test {
-	return &Test{}
 }

@@ -23,7 +23,7 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	tp, err := NewTemplateProcessor(NewTestReader(), nil)
+	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
