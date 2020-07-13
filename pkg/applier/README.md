@@ -28,7 +28,7 @@ A method `CreateOrUpdateInPath` creates or update all resources localted in a sp
 		ManagedClusterName:      saNsN.Name,
 		ManagedClusterNamespace: saNsN.Namespace,
 	}
-	tp, err := NewTemplateProcessor(NewTestReader(), nil)
+	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ The result contains a `[]byte` representing the templated yaml with the provided
 		ImagePullSecretType:   imagePullSecret.Type,
 	}
 
-	tp, err := NewTemplateProcessor(NewTestReader(), nil)
+	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ results contains a non-sorted `[][]bytes` each element is the templated yamls us
 ### Example 3: Retreive a list of yamls
 
 ```
-	tp, err := NewTemplateProcessor(NewTestReader(), nil, nil)
+	tp, err := NewTemplateProcessor(NewTestReader(assets), nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -113,7 +113,7 @@ The crds contains a `[][]byte` (non-sorted) of all yamls found in `klusterlet/cr
 		ImagePullSecretType:   imagePullSecret.Type,
 	}
 
-	tp, err := NewTemplateProcessor(NewTestReader(), nil)
+	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -168,7 +168,7 @@ var merger bindata.Merger = func(current,
 		BootstrapServiceAccountName: instance.Name + bootstrapServiceAccountNamePostfix,
 	}
 
-	tp, err := NewTemplateProcessor(NewTestReader(), nil)
+	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -125,6 +125,58 @@ func (a *Applier) CreateOrUpdateInPath(
 	return a.CreateOrUpdates(us)
 }
 
+//CreateInPath creates the assets found in the path and
+// subpath if recursive is set to true.
+// path: The path were the yaml to apply is located
+// excludes: The list of yamls to exclude
+// recursive: If true all yamls in the path directory and sub-directories will be applied
+// it excludes the assets named in the excluded array
+// it sets the Controller reference if owner and scheme are not nil
+//
+func (a *Applier) CreateInPath(
+	path string,
+	excluded []string,
+	recursive bool,
+	values interface{},
+) error {
+	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+		path,
+		excluded,
+		recursive,
+		values)
+
+	if err != nil {
+		return err
+	}
+	return a.CreateArrayOfUnstructuted(us)
+}
+
+//UpdateInPath creates or updates the assets found in the path and
+// subpath if recursive is set to true.
+// path: The path were the yaml to apply is located
+// excludes: The list of yamls to exclude
+// recursive: If true all yamls in the path directory and sub-directories will be applied
+// it excludes the assets named in the excluded array
+// it sets the Controller reference if owner and scheme are not nil
+//
+func (a *Applier) UpdateInPath(
+	path string,
+	excluded []string,
+	recursive bool,
+	values interface{},
+) error {
+	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+		path,
+		excluded,
+		recursive,
+		values)
+
+	if err != nil {
+		return err
+	}
+	return a.UpdateArrayOfUnstructured(us)
+}
+
 //CreateOrUpdateAssets create or update all resources defined in the assets.
 //The asserts are separated by the delimiter (ie: "---" for yamls)
 func (a *Applier) CreateOrUpdateAssets(
@@ -139,7 +191,35 @@ func (a *Applier) CreateOrUpdateAssets(
 	return a.CreateOrUpdates(us)
 }
 
-//CreateorUpdateFile create or updates an asset
+//CreatAssets create all resources defined in the assets.
+//The asserts are separated by the delimiter (ie: "---" for yamls)
+func (a *Applier) CreateAssets(
+	assets []byte,
+	values interface{},
+	delimiter string,
+) error {
+	us, err := a.templateProcessor.TemplateBytesUnstructured(assets, values, delimiter)
+	if err != nil {
+		return err
+	}
+	return a.CreateArrayOfUnstructuted(us)
+}
+
+//UpdateAssets update all resources defined in the assets.
+//The asserts are separated by the delimiter (ie: "---" for yamls)
+func (a *Applier) UpdateAssets(
+	assets []byte,
+	values interface{},
+	delimiter string,
+) error {
+	us, err := a.templateProcessor.TemplateBytesUnstructured(assets, values, delimiter)
+	if err != nil {
+		return err
+	}
+	return a.UpdateArrayOfUnstructured(us)
+}
+
+//CreateorUpdateAsset create or updates an asset
 func (a *Applier) CreateOrUpdateAsset(
 	assetName string,
 	values interface{},
@@ -153,6 +233,38 @@ func (a *Applier) CreateOrUpdateAsset(
 		return err
 	}
 	return a.CreateOrUpdate(u)
+}
+
+//CreateAsset create an asset
+func (a *Applier) CreateAsset(
+	assetName string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateAsset(assetName, values)
+	if err != nil {
+		return err
+	}
+	u, err := a.templateProcessor.BytesToUnstructured(b)
+	if err != nil {
+		return err
+	}
+	return a.Create(u)
+}
+
+//UpdateAsset updates an asset
+func (a *Applier) UpdateAsset(
+	assetName string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateAsset(assetName, values)
+	if err != nil {
+		return err
+	}
+	u, err := a.templateProcessor.BytesToUnstructured(b)
+	if err != nil {
+		return err
+	}
+	return a.Update(u)
 }
 
 //CreateOrUpdates an array of unstructured.Unstructured
@@ -169,6 +281,34 @@ func (a *Applier) CreateOrUpdates(
 	return nil
 }
 
+//CreateArrayOfUnstructured create resources from an array of unstructured.Unstructured
+func (a *Applier) CreateArrayOfUnstructuted(
+	us []*unstructured.Unstructured,
+) error {
+	//Create the unstructured items if they don't exist yet
+	for _, u := range us {
+		err := a.Create(u)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//UpdateArrayOfUnstructured updates resources from an array of unstructured.Unstructured
+func (a *Applier) UpdateArrayOfUnstructured(
+	us []*unstructured.Unstructured,
+) error {
+	//Update the unstructured items if they don't exist yet
+	for _, u := range us {
+		err := a.Update(u)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 //CreateOrUpdate creates or updates an unstructured object.
 //It will returns an error if it failed and also if it needs to update the object
 //and the applier.Merger is not defined.
@@ -177,32 +317,18 @@ func (a *Applier) CreateOrUpdate(
 ) error {
 
 	log.V(2).Info("Create or update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
-	//Set controller ref
-	if a.owner != nil && a.scheme != nil {
-		if err := controllerutil.SetControllerReference(a.owner, u, a.scheme); err != nil {
-			log.Error(err, "Failed to SetControllerReference",
-				"Name", u.GetName(),
-				"Namespace", u.GetNamespace())
-			return err
-		}
-	}
 
 	//Check if already exists
 	current := &unstructured.Unstructured{}
 	current.SetGroupVersionKind(u.GroupVersionKind())
-	var errGet error
-	errGet = a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
+	errGet := a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
 	if errGet != nil {
 		if errors.IsNotFound(errGet) {
 			log.V(2).Info("Create",
 				"Kind", current.GetKind(),
 				"Name", current.GetName(),
 				"Namespace", current.GetNamespace())
-			err := a.client.Create(context.TODO(), u)
-			if err != nil {
-				log.Error(err, "Unable to create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
-				return err
-			}
+			return a.Create(u)
 		} else {
 			log.Error(errGet, "Error while create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 			return errGet
@@ -212,6 +338,53 @@ func (a *Applier) CreateOrUpdate(
 			"Kind", current.GetKind(),
 			"Name", current.GetName(),
 			"Namespace", current.GetNamespace())
+		return a.Update(u)
+	}
+}
+
+//Create creates an unstructured object.
+func (a *Applier) Create(
+	u *unstructured.Unstructured,
+) error {
+
+	log.V(2).Info("Create ", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	//Set controller ref
+	err := a.setControllerReference(u)
+	if err != nil {
+		return err
+	}
+
+	err = a.client.Create(context.TODO(), u)
+	if err != nil {
+		log.Error(err, "Unable to create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+		return err
+	}
+
+	return nil
+}
+
+//Update updates an unstructured object.
+//It will returns an error if it failed and also if it needs to update the object
+//and the applier.Merger is not defined.
+func (a *Applier) Update(
+	u *unstructured.Unstructured,
+) error {
+
+	log.V(2).Info("Create ", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	//Set controller ref
+	err := a.setControllerReference(u)
+	if err != nil {
+		return err
+	}
+
+	//Check if already exists
+	current := &unstructured.Unstructured{}
+	current.SetGroupVersionKind(u.GroupVersionKind())
+	errGet := a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
+	if errGet != nil {
+		log.Error(errGet, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+		return errGet
+	} else {
 		if a.merger == nil {
 			return fmt.Errorf("Unable to update %s/%s of Kind %s the merger is nil",
 				current.GetKind(),
@@ -227,6 +400,21 @@ func (a *Applier) CreateOrUpdate(
 			}
 		} else {
 			log.V(2).Info("No update needed")
+		}
+	}
+	return nil
+
+}
+
+func (a *Applier) setControllerReference(
+	u *unstructured.Unstructured,
+) error {
+	if a.owner != nil && a.scheme != nil {
+		if err := controllerutil.SetControllerReference(a.owner, u, a.scheme); err != nil {
+			log.Error(err, "Failed to SetControllerReference",
+				"Name", u.GetName(),
+				"Namespace", u.GetNamespace())
+			return err
 		}
 	}
 	return nil
