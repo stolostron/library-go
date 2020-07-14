@@ -15,7 +15,7 @@ import (
 )
 
 func usage() {
-	log.Printf("Usage: apply-yamls [-k kubeconfig]\n")
+	log.Printf("Usage: apply-yaml-in-dir [-k kubeconfig]\n")
 	flag.PrintDefaults()
 }
 

@@ -1,5 +1,5 @@
 //Package main: This program shows how to create resources based on yamls template located in
-//the different directory or bindata path or array of string.
+//the same directory or bindata or array of string.
 package main
 
 import (
@@ -9,13 +9,11 @@ import (
 
 	// "github.com/open-cluster-management/library-go/examples/applier/bindata"
 	"github.com/open-cluster-management/library-go/pkg/applier"
-	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
 	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func usage() {
-	log.Printf("Usage: apply-some-yaml [-k kubeconfig]\n")
+	log.Printf("Usage: render-yaml-in-dir\n")
 	flag.PrintDefaults()
 }
 
@@ -27,7 +25,6 @@ func showUsageAndExit(exitcode int) {
 func main() {
 	klog.InitFlags(nil)
 
-	var kubeconfig = flag.String("k", os.Getenv("KUBECONFIG"), "The path of the kubeconfig")
 	var showHelp = flag.Bool("h", false, "Show help message")
 
 	log.SetFlags(0)
@@ -38,13 +35,13 @@ func main() {
 		showUsageAndExit(0)
 	}
 
-	err := applyYamlFile(*kubeconfig)
+	err := renderYamlFile()
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func applyYamlFile(kubeconfig string) error {
+func renderYamlFile() error {
 	const directory = "../resources"
 	//Create a reader on "../../resources" directory
 	klog.Infof("Creating the file reader %s", directory)
@@ -59,18 +56,6 @@ func applyYamlFile(kubeconfig string) error {
 	if err != nil {
 		return err
 	}
-	//Create a client
-	klog.Infof("Creating kubernetes client using kubeconfig located at %s", kubeconfig)
-	client, err := libgoclient.NewDefaultClient(kubeconfig, client.Options{})
-	if err != nil {
-		return err
-	}
-	//Create an Applier
-	klog.Info("Creating applier")
-	a, err := applier.NewApplier(tp, client, nil, nil, applier.DefaultKubernetesMerger)
-	if err != nil {
-		return err
-	}
 	//Defines the values
 	values := struct {
 		ManagedClusterName          string
@@ -82,29 +67,23 @@ func applyYamlFile(kubeconfig string) error {
 		BootstrapServiceAccountName: "mybootstrapserviceaccount",
 	}
 
-	assetToBeApplied := []string{"yamlfilereader/namespace.yaml",
-		"yamlfilereader/serviceaccount.yaml",
-	}
 	//Just to display what will be applied
-	klog.Infof("Resources to be created: %v", assetToBeApplied)
-
-	//template the resources
-	us, err := tp.TemplateResourcesUnstructured(
-		assetToBeApplied,
-		values)
+	assetToBeApplied, err := tp.AssetNamesInPath("yamlfilereader", []string{"yamlfilereader/clusterrolebinding.yaml"}, false)
 	if err != nil {
 		return err
 	}
+	klog.Infof("Resources to be created: %v", assetToBeApplied)
 
-	//Create the resources starting with path "yamlfilereader" in the reader
+	//Render the resources starting with path "yamlfilereader" in the reader
 	//excluding "clusterrolebinding.yaml"
 	//in a non-recursive way
 	//and passing the values to replace
-	klog.Info("Create or update resources")
-	err = a.CreateOrUpdates(us)
+	//The output is sorted
+	klog.Info("Render resources\n")
+	out, err := tp.TemplateAssetsInPathYaml("yamlfilereader", []string{"yamlfilereader/clusterrolebinding.yaml"}, false, values)
 	if err != nil {
 		return err
 	}
-	klog.Infof("Resource deployed")
+	klog.Infof("Generated resources yamls\n%s", applier.ConvertArrayOfBytesToString(out))
 	return nil
 }

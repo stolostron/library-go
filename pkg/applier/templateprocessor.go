@@ -3,6 +3,7 @@ package applier
 import (
 	"bytes"
 	goerr "errors"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -156,7 +157,7 @@ func (tp *TemplateProcessor) TemplateAssetsInPathYaml(
 }
 
 // TemplateAssetsInPathYaml returns all assets in a path using the provided config.
-// The assets are sorted following the order defined in variable kindsOrder
+// The resources are sorted following the order defined in variable kindsOrder
 func (tp *TemplateProcessor) TemplateResourcesInPathYaml(
 	path string,
 	excluded []string,
@@ -386,4 +387,18 @@ func (tp *TemplateProcessor) weight(u *unstructured.Unstructured) int {
 		}
 	}
 	return len(tp.options.KindsOrder)
+}
+
+func ConvertArrayOfBytesToString(in [][]byte) (out string) {
+	ss := ConvertArrayOfBytesToArrayOfString(in)
+	out = fmt.Sprint(strings.Join(ss, "---\n"))
+	return out
+}
+
+func ConvertArrayOfBytesToArrayOfString(in [][]byte) (out []string) {
+	out = make([]string, 0)
+	for _, o := range in {
+		out = append(out, string(o))
+	}
+	return out
 }
