@@ -1,20 +1,20 @@
 # Introduction
 
 The file [applier](../pkg/applier) contains an number of methods allowing you to render template yamls. 
-The resources are read by an Go object satisfying the [TemplateReader](./templateProcessor.go) reader.  
+The resources are read by an Go object satisfying the [TemplateReader](pkg/applier/templateProcessor.go) reader.  
 The reader is embedded in a applier.TemplateProcessor object
 The resources are sorted in order to be applied in a kubernetes environment using a applier.Client
 
 
 ## Implementing a reader
 
-A reader will read assets from a data source. You can find [testreader_test.go](./testreader_test.go) an example of a reader which reads the data from memory.
+A reader will read assets from a data source. You can find [testreade.go](pkg/applier/testreader.go) an example of a reader which reads the data from memory.
 
-A bindata implementation can be found [bindata](https://github.com/open-cluster-management/rcm-controller/pkg/bindata/bindatareader.go)
+A bindata implementation can be found [bindata](examples/applier/bindata/bindata/bindatareader.go)
 
 ## Methods
 
-In [applier](../pkg/applier) there are methods which process the yaml templates, return them as a list of yamls or list of `unstructured.Unstructured`.
+In [applier](pkg/applier) there are methods which process the yaml templates, return them as a list of yamls or list of `unstructured.Unstructured`.
 There are also methods that sort these processed yaml templates depending of their `kind`. The order is defined in `kindOrder` variable which can be override.
 A method `CreateOrUpdateInPath` creates or update all resources localted in a specific path.
 
@@ -65,7 +65,7 @@ The result contains a `[]byte` representing the templated yaml with the provided
 		return nil, err
 	}
 
-	results, err := tp.TemplateAssets([]string{
+	results, err := tp.TemplateResources([]string{
 		"klusterlet/namespace.yaml",
 		"klusterlet/image_pull_secret.yaml",
 		"klusterlet/bootstrap_secret.yaml",
@@ -118,7 +118,7 @@ The crds contains a `[][]byte` (non-sorted) of all yamls found in `klusterlet/cr
 		return nil, nil, err
 	}
 
-	resutls, err := tp.TemplateAssetsInPathYaml(
+	resutls, err := tp.TemplateResourcesInPathYaml(
 		"klusterlet", nil, false, values)
 	if err != nil {
 		return nil, nil, err

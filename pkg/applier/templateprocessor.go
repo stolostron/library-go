@@ -14,11 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-//TemplateProcessor this structure holds all object for the applier
+//TemplateProcessor this structure holds all objects for the TemplateProcessor
 type TemplateProcessor struct {
 	//reader a TemplateReader to read the data source
 	reader TemplateReader
-	//Options to configure the applier
+	//Options to configure the TemplateProcessor
 	options *Options
 }
 
@@ -78,15 +78,25 @@ func NewTemplateProcessor(
 	}, nil
 }
 
+//Deprecated: Use TemplateResources
 //TemplateAssets render the given templates with the provided values
 //The assets are not sorted and returned in the same template provided order
 func (tp *TemplateProcessor) TemplateAssets(
 	templateNames []string,
 	values interface{},
 ) ([][]byte, error) {
+	return tp.TemplateResources(templateNames, values)
+}
+
+//TemplateResources render the given templates with the provided values
+//The resources are not sorted and returned in the same template provided order
+func (tp *TemplateProcessor) TemplateResources(
+	templateNames []string,
+	values interface{},
+) ([][]byte, error) {
 	results := make([][]byte, len(templateNames))
 	for i, templateName := range templateNames {
-		result, err := tp.TemplateAsset(templateName, values)
+		result, err := tp.TemplateResource(templateName, values)
 		if err != nil {
 			return nil, err
 		}
@@ -95,8 +105,17 @@ func (tp *TemplateProcessor) TemplateAssets(
 	return results, nil
 }
 
+//Deprecated: Use TemplateResource
 //TemplateAsset render the given template with the provided values
 func (tp *TemplateProcessor) TemplateAsset(
+	templateName string,
+	values interface{},
+) ([]byte, error) {
+	return tp.TemplateResource(templateName, values)
+}
+
+//TemplateResource render the given template with the provided values
+func (tp *TemplateProcessor) TemplateResource(
 	templateName string,
 	values interface{},
 ) ([]byte, error) {
@@ -124,6 +143,7 @@ func (tp *TemplateProcessor) TemplateBytes(
 	return buf.Bytes(), err
 }
 
+// Depricated: Use TemplateResourcesInPathYaml
 // TemplateAssetsInPathYaml returns all assets in a path using the provided config.
 // The assets are sorted following the order defined in variable kindsOrder
 func (tp *TemplateProcessor) TemplateAssetsInPathYaml(
@@ -132,7 +152,18 @@ func (tp *TemplateProcessor) TemplateAssetsInPathYaml(
 	recursive bool,
 	values interface{},
 ) ([][]byte, error) {
-	us, err := tp.TemplateAssetsInPathUnstructured(path, excluded, recursive, values)
+	return tp.TemplateResourcesInPathYaml(path, excluded, recursive, values)
+}
+
+// TemplateAssetsInPathYaml returns all assets in a path using the provided config.
+// The assets are sorted following the order defined in variable kindsOrder
+func (tp *TemplateProcessor) TemplateResourcesInPathYaml(
+	path string,
+	excluded []string,
+	recursive bool,
+	values interface{},
+) ([][]byte, error) {
+	us, err := tp.TemplateResourcesInPathUnstructured(path, excluded, recursive, values)
 	if err != nil {
 		return nil, err
 	}
@@ -211,6 +242,7 @@ func (tp *TemplateProcessor) Assets(
 	return payloads, nil
 }
 
+// Depricated: Use TemplateResourcesInPathUnstructured
 // TemplateAssetsInPathUnstructured returns all assets in a []unstructured.Unstructured and sort them
 // The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
 func (tp *TemplateProcessor) TemplateAssetsInPathUnstructured(
@@ -218,30 +250,64 @@ func (tp *TemplateProcessor) TemplateAssetsInPathUnstructured(
 	excluded []string,
 	recursive bool,
 	values interface{}) (assets []*unstructured.Unstructured, err error) {
+	return tp.TemplateResourcesInPathUnstructured(path, excluded, recursive, values)
+}
+
+// TemplateResourcesInPathUnstructured returns all assets in a []unstructured.Unstructured and sort them
+// The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
+func (tp *TemplateProcessor) TemplateResourcesInPathUnstructured(
+	path string,
+	excluded []string,
+	recursive bool,
+	values interface{}) (us []*unstructured.Unstructured, err error) {
 	templateNames, err := tp.AssetNamesInPath(path, excluded, recursive)
 	if err != nil {
 		return nil, err
 	}
+	us, err = tp.TemplateResourcesUnstructured(templateNames, values)
+	if err != nil {
+		return nil, err
+	}
+	return us, nil
+}
+
+// Depricated: Use TemplateResourcesUnstructured
+// TemplateAssetsUnstructured returns all assets in a []unstructured.Unstructured and sort them
+// The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
+func (tp *TemplateProcessor) TemplateAssetsUnstructured(
+	templateNames []string,
+	values interface{}) (assets []*unstructured.Unstructured, err error) {
+	return tp.TemplateResourcesUnstructured(templateNames, values)
+}
+
+// TemplateResourcesUnstructured returns all assets in a []unstructured.Unstructured and sort them
+// The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
+func (tp *TemplateProcessor) TemplateResourcesUnstructured(
+	templateNames []string,
+	values interface{}) (us []*unstructured.Unstructured, err error) {
 	templatedAssets, err := tp.TemplateAssets(templateNames, values)
 	if err != nil {
 		return nil, err
 	}
-	assets, err = tp.BytesArrayToUnstructured(templatedAssets)
+	us, err = tp.bytesArrayToUnstructured(templatedAssets)
 	if err != nil {
 		return nil, err
 	}
-	tp.sortUnstructuredForApply(assets)
-	return assets, nil
+	tp.sortUnstructuredForApply(us)
+	return us, nil
 }
 
+// Deprecated: Please use another templating methods with a YamlStringReader
 // TemplateBytesUnstructured returns all assets defined in a []byte (separted by the delimiter)
 // in a []unstructured.Unstructured and sort them
 // The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
+// However the resources is a parameter it requires a reader to define the ToJSON method.
+// Please use another method with a YamlStringReader
 func (tp *TemplateProcessor) TemplateBytesUnstructured(
-	assets []byte,
+	resources []byte,
 	values interface{},
 	delimiter string) (us []*unstructured.Unstructured, err error) {
-	templatedAssets, err := tp.TemplateBytes(assets, values)
+	templatedAssets, err := tp.TemplateBytes(resources, values)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +320,7 @@ func (tp *TemplateProcessor) TemplateBytesUnstructured(
 		}
 		templatedAssetsArray = append(templatedAssetsArray, []byte(y))
 	}
-	us, err = tp.BytesArrayToUnstructured(templatedAssetsArray)
+	us, err = tp.bytesArrayToUnstructured(templatedAssetsArray)
 	if err != nil {
 		return nil, err
 	}
@@ -263,8 +329,8 @@ func (tp *TemplateProcessor) TemplateBytesUnstructured(
 
 }
 
-//BytesArrayToUnstructured transform a [][]byte to an []*unstructured.Unstructured using the TemplateProcessor reader
-func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*unstructured.Unstructured, err error) {
+//bytesArrayToUnstructured transform a [][]byte to an []*unstructured.Unstructured using the TemplateProcessor reader
+func (tp *TemplateProcessor) bytesArrayToUnstructured(assets [][]byte) (us []*unstructured.Unstructured, err error) {
 	us = make([]*unstructured.Unstructured, len(assets))
 	for i, b := range assets {
 		u, err := tp.BytesToUnstructured(b)
@@ -274,6 +340,11 @@ func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*un
 		us[i] = u
 	}
 	return us, nil
+}
+
+//Deprecated: Developer should not use this method
+func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*unstructured.Unstructured, err error) {
+	return tp.bytesArrayToUnstructured(assets)
 }
 
 //BytesToUnstructured transform a []byte to an *unstructured.Unstructured using the TemplateProcessor reader

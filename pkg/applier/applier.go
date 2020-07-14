@@ -66,6 +66,15 @@ type Merger func(current,
 	update bool,
 )
 
+var rootAttributes = []string{
+	"spec",
+	"rules",
+	"roleRef",
+	"subjects",
+	"secrets",
+	"imagePullSecrets",
+	"automountServiceAccountToken"}
+
 //DefaultKubernetesMerger merges kubernetes runtime.Object
 //It merges the spec, rules, roleRef, subjects root attribute of a runtime.Object
 //For example a CLusterRoleBinding has a subjects and roleRef fields and so the old
@@ -76,25 +85,17 @@ var DefaultKubernetesMerger Merger = func(current,
 	future *unstructured.Unstructured,
 	update bool,
 ) {
-	if spec, ok := new.Object["spec"]; ok &&
-		!reflect.DeepEqual(spec, current.Object["spec"]) {
-		update = true
-		current.Object["spec"] = spec
-	}
-	if rules, ok := new.Object["rules"]; ok &&
-		!reflect.DeepEqual(rules, current.Object["rules"]) {
-		update = true
-		current.Object["rules"] = rules
-	}
-	if roleRef, ok := new.Object["roleRef"]; ok &&
-		!reflect.DeepEqual(roleRef, current.Object["roleRef"]) {
-		update = true
-		current.Object["roleRef"] = roleRef
-	}
-	if subjects, ok := new.Object["subjects"]; ok &&
-		!reflect.DeepEqual(subjects, current.Object["subjects"]) {
-		update = true
-		current.Object["subjects"] = subjects
+	for _, r := range rootAttributes {
+		if newValue, ok := new.Object[r]; ok {
+			if !reflect.DeepEqual(newValue, current.Object[r]) {
+				update = true
+				current.Object[r] = newValue
+			}
+		} else {
+			if _, ok := current.Object[r]; ok {
+				current.Object[r] = nil
+			}
+		}
 	}
 	return current, update
 }
@@ -148,7 +149,7 @@ func (a *Applier) CreateInPath(
 	if err != nil {
 		return err
 	}
-	return a.CreateArrayOfUnstructuted(us)
+	return a.Creates(us)
 }
 
 //UpdateInPath creates or updates the assets found in the path and
@@ -174,11 +175,14 @@ func (a *Applier) UpdateInPath(
 	if err != nil {
 		return err
 	}
-	return a.UpdateArrayOfUnstructured(us)
+	return a.Updates(us)
 }
 
-//CreateOrUpdateAssets create or update all resources defined in the assets.
-//The asserts are separated by the delimiter (ie: "---" for yamls)
+// Deprecated: Please use another CreateOrUpdate methods with a YamlStringReader
+// CreateOrUpdateAssets create or update all resources defined in the assets.
+// The asserts are separated by the delimiter (ie: "---" for yamls)
+// However the assets is a parameter it requires a reader to define the ToJSON method.
+// Please use another method with a YamlStringReader
 func (a *Applier) CreateOrUpdateAssets(
 	assets []byte,
 	values interface{},
@@ -191,40 +195,21 @@ func (a *Applier) CreateOrUpdateAssets(
 	return a.CreateOrUpdates(us)
 }
 
-//CreatAssets create all resources defined in the assets.
-//The asserts are separated by the delimiter (ie: "---" for yamls)
-func (a *Applier) CreateAssets(
-	assets []byte,
-	values interface{},
-	delimiter string,
-) error {
-	us, err := a.templateProcessor.TemplateBytesUnstructured(assets, values, delimiter)
-	if err != nil {
-		return err
-	}
-	return a.CreateArrayOfUnstructuted(us)
-}
-
-//UpdateAssets update all resources defined in the assets.
-//The asserts are separated by the delimiter (ie: "---" for yamls)
-func (a *Applier) UpdateAssets(
-	assets []byte,
-	values interface{},
-	delimiter string,
-) error {
-	us, err := a.templateProcessor.TemplateBytesUnstructured(assets, values, delimiter)
-	if err != nil {
-		return err
-	}
-	return a.UpdateArrayOfUnstructured(us)
-}
-
+//Deprecated: Use CreateOrUpdateResource
 //CreateorUpdateAsset create or updates an asset
 func (a *Applier) CreateOrUpdateAsset(
 	assetName string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateAsset(assetName, values)
+	return a.CreateOrUpdateResource(assetName, values)
+}
+
+//CreateorUpdateAsset create or updates an asset
+func (a *Applier) CreateOrUpdateResource(
+	assetName string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateResource(assetName, values)
 	if err != nil {
 		return err
 	}
@@ -235,12 +220,12 @@ func (a *Applier) CreateOrUpdateAsset(
 	return a.CreateOrUpdate(u)
 }
 
-//CreateAsset create an asset
-func (a *Applier) CreateAsset(
+//CreateResource create an asset
+func (a *Applier) CreateResource(
 	assetName string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateAsset(assetName, values)
+	b, err := a.templateProcessor.TemplateResource(assetName, values)
 	if err != nil {
 		return err
 	}
@@ -251,8 +236,8 @@ func (a *Applier) CreateAsset(
 	return a.Create(u)
 }
 
-//UpdateAsset updates an asset
-func (a *Applier) UpdateAsset(
+//UpdateResource updates an asset
+func (a *Applier) UpdateResource(
 	assetName string,
 	values interface{},
 ) error {
@@ -281,8 +266,8 @@ func (a *Applier) CreateOrUpdates(
 	return nil
 }
 
-//CreateArrayOfUnstructured create resources from an array of unstructured.Unstructured
-func (a *Applier) CreateArrayOfUnstructuted(
+//Creates create resources from an array of unstructured.Unstructured
+func (a *Applier) Creates(
 	us []*unstructured.Unstructured,
 ) error {
 	//Create the unstructured items if they don't exist yet
@@ -295,8 +280,8 @@ func (a *Applier) CreateArrayOfUnstructuted(
 	return nil
 }
 
-//UpdateArrayOfUnstructured updates resources from an array of unstructured.Unstructured
-func (a *Applier) UpdateArrayOfUnstructured(
+//Updates updates resources from an array of unstructured.Unstructured
+func (a *Applier) Updates(
 	us []*unstructured.Unstructured,
 ) error {
 	//Update the unstructured items if they don't exist yet

@@ -67,3 +67,11 @@ sonar/js:
 	unset SONARQUBE_SCANNER_PARAMS
 	sonar-scanner --debug
 
+.PHONY: go-bindata
+go-bindata:
+	@if which go-bindata > /dev/null; then \
+		echo "##### Updating go-bindata..."; \
+		cd $(mktemp -d) && GOSUMDB=off go get -u github.com/go-bindata/go-bindata/...; \
+	fi
+	@go-bindata --version
+	go-bindata -nometadata -pkg bindata -o examples/applier/bindata/bindata_generated.go -prefix examples/applier/resources/yamlfilereader  examples/applier/resources/yamlfilereader/...
