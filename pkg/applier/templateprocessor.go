@@ -144,7 +144,7 @@ func (tp *TemplateProcessor) TemplateBytes(
 	return buf.Bytes(), err
 }
 
-// Depricated: Use TemplateResourcesInPathYaml
+// Deprecated: Use TemplateResourcesInPathYaml
 // TemplateAssetsInPathYaml returns all assets in a path using the provided config.
 // The assets are sorted following the order defined in variable kindsOrder
 func (tp *TemplateProcessor) TemplateAssetsInPathYaml(
@@ -243,7 +243,7 @@ func (tp *TemplateProcessor) Assets(
 	return payloads, nil
 }
 
-// Depricated: Use TemplateResourcesInPathUnstructured
+// Deprecated: Use TemplateResourcesInPathUnstructured
 // TemplateAssetsInPathUnstructured returns all assets in a []unstructured.Unstructured and sort them
 // The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
 func (tp *TemplateProcessor) TemplateAssetsInPathUnstructured(
@@ -272,7 +272,7 @@ func (tp *TemplateProcessor) TemplateResourcesInPathUnstructured(
 	return us, nil
 }
 
-// Depricated: Use TemplateResourcesUnstructured
+// Deprecated: Use TemplateResourcesUnstructured
 // TemplateAssetsUnstructured returns all assets in a []unstructured.Unstructured and sort them
 // The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
 func (tp *TemplateProcessor) TemplateAssetsUnstructured(
