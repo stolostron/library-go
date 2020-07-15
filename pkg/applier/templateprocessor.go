@@ -9,8 +9,6 @@ import (
 	"strings"
 	"text/template"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
 	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -40,8 +38,6 @@ type Options struct {
 	//Override the default order, it contains the kind order which the applier must use before applying all resources.
 	KindsOrder []string
 }
-
-var log = logf.Log.WithName("applier")
 
 //defaultKindsOrder the default order
 var defaultKindsOrder = []string{

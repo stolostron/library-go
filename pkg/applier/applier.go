@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -301,7 +302,7 @@ func (a *Applier) CreateOrUpdate(
 	u *unstructured.Unstructured,
 ) error {
 
-	log.V(2).Info("Create or update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	klog.V(2).Info("Create or update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 
 	//Check if already exists
 	current := &unstructured.Unstructured{}
@@ -309,17 +310,17 @@ func (a *Applier) CreateOrUpdate(
 	errGet := a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
 	if errGet != nil {
 		if errors.IsNotFound(errGet) {
-			log.V(2).Info("Create",
+			klog.V(2).Info("Create",
 				"Kind", current.GetKind(),
 				"Name", current.GetName(),
 				"Namespace", current.GetNamespace())
 			return a.Create(u)
 		} else {
-			log.Error(errGet, "Error while create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+			klog.Error(errGet, "Error while create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 			return errGet
 		}
 	} else {
-		log.V(2).Info("Update",
+		klog.V(2).Info("Update",
 			"Kind", current.GetKind(),
 			"Name", current.GetName(),
 			"Namespace", current.GetNamespace())
@@ -332,7 +333,7 @@ func (a *Applier) Create(
 	u *unstructured.Unstructured,
 ) error {
 
-	log.V(2).Info("Create ", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	klog.V(2).Info("Create ", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 	//Set controller ref
 	err := a.setControllerReference(u)
 	if err != nil {
@@ -341,7 +342,7 @@ func (a *Applier) Create(
 
 	err = a.client.Create(context.TODO(), u)
 	if err != nil {
-		log.Error(err, "Unable to create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+		klog.Error(err, "Unable to create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 		return err
 	}
 
@@ -355,7 +356,7 @@ func (a *Applier) Update(
 	u *unstructured.Unstructured,
 ) error {
 
-	log.V(2).Info("Create ", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	klog.V(2).Info("Create ", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 	//Set controller ref
 	err := a.setControllerReference(u)
 	if err != nil {
@@ -367,7 +368,7 @@ func (a *Applier) Update(
 	current.SetGroupVersionKind(u.GroupVersionKind())
 	errGet := a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
 	if errGet != nil {
-		log.Error(errGet, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+		klog.Error(errGet, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 		return errGet
 	} else {
 		if a.merger == nil {
@@ -380,11 +381,11 @@ func (a *Applier) Update(
 		if update {
 			err := a.client.Update(context.TODO(), future)
 			if err != nil {
-				log.Error(err, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+				klog.Error(err, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 				return err
 			}
 		} else {
-			log.V(2).Info("No update needed")
+			klog.V(2).Info("No update needed")
 		}
 	}
 	return nil
@@ -396,7 +397,7 @@ func (a *Applier) setControllerReference(
 ) error {
 	if a.owner != nil && a.scheme != nil {
 		if err := controllerutil.SetControllerReference(a.owner, u, a.scheme); err != nil {
-			log.Error(err, "Failed to SetControllerReference",
+			klog.Error(err, "Failed to SetControllerReference",
 				"Name", u.GetName(),
 				"Namespace", u.GetNamespace())
 			return err

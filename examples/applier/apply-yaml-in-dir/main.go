@@ -4,7 +4,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
 	// "github.com/open-cluster-management/library-go/examples/applier/bindata"
@@ -15,7 +14,7 @@ import (
 )
 
 func usage() {
-	log.Printf("Usage: apply-yaml-in-dir [-k kubeconfig]\n")
+	klog.Info("Usage: apply-yaml-in-dir -k kubeconfig\n")
 	flag.PrintDefaults()
 }
 
@@ -27,12 +26,16 @@ func showUsageAndExit(exitcode int) {
 func main() {
 	klog.InitFlags(nil)
 
-	var kubeconfig = flag.String("k", os.Getenv("KUBECONFIG"), "The path of the kubeconfig")
+	var kubeconfig = flag.String("k", "", "The path of the kubeconfig")
 	var showHelp = flag.Bool("h", false, "Show help message")
 
-	log.SetFlags(0)
 	flag.Usage = usage
 	flag.Parse()
+
+	if *kubeconfig == "" {
+		klog.Info("k is a mandatory argument")
+		showUsageAndExit(0)
+	}
 
 	if *showHelp {
 		showUsageAndExit(0)
@@ -40,7 +43,7 @@ func main() {
 
 	err := applyYamlFile(*kubeconfig)
 	if err != nil {
-		log.Fatal(err)
+		klog.Fatal(err)
 	}
 }
 

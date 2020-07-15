@@ -4,6 +4,7 @@
 .vscode
 vendor
 test/unit/coverage
+examples/bin
 
 # Files
 coverage.out

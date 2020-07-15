@@ -36,7 +36,6 @@ func LoadConfig(
 	}
 	// If not, try the in-cluster config.
 	if c, err := rest.InClusterConfig(); err == nil {
-		// log.Print("incluster\n")
 		return c, nil
 	}
 	// If no in-cluster config, try the default location in the user's home directory.

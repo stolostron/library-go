@@ -4,7 +4,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
 	// "github.com/open-cluster-management/library-go/examples/applier/bindata"
@@ -13,7 +12,7 @@ import (
 )
 
 func usage() {
-	log.Printf("Usage: render-yaml-in-dir\n")
+	klog.Info("Usage: render-yaml-in-dir\n")
 	flag.PrintDefaults()
 }
 
@@ -27,7 +26,6 @@ func main() {
 
 	var showHelp = flag.Bool("h", false, "Show help message")
 
-	log.SetFlags(0)
 	flag.Usage = usage
 	flag.Parse()
 
@@ -37,7 +35,7 @@ func main() {
 
 	err := renderYamlFile()
 	if err != nil {
-		log.Fatal(err)
+		klog.Fatal(err)
 	}
 }
 
