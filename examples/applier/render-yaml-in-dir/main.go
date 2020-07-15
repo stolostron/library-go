@@ -68,7 +68,10 @@ func renderYamlFile() error {
 	}
 
 	//Just to display what will be applied
-	assetToBeApplied, err := tp.AssetNamesInPath("yamlfilereader", []string{"yamlfilereader/clusterrolebinding.yaml"}, false)
+	assetToBeApplied, err := tp.AssetNamesInPath(
+		"yamlfilereader",
+		[]string{"yamlfilereader/clusterrolebinding.yaml"},
+		false)
 	if err != nil {
 		return err
 	}
@@ -80,7 +83,11 @@ func renderYamlFile() error {
 	//and passing the values to replace
 	//The output is sorted
 	klog.Info("Render resources\n")
-	out, err := tp.TemplateAssetsInPathYaml("yamlfilereader", []string{"yamlfilereader/clusterrolebinding.yaml"}, false, values)
+	out, err := tp.TemplateAssetsInPathYaml(
+		"yamlfilereader",
+		[]string{"yamlfilereader/clusterrolebinding.yaml"},
+		false,
+		values)
 	if err != nil {
 		return err
 	}

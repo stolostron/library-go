@@ -83,7 +83,10 @@ func applyYamlFile(kubeconfig string) error {
 	}
 
 	//Just to display what will be applied
-	assetToBeApplied, err := tp.AssetNamesInPath("yamlfilereader", []string{"yamlfilereader/clusterrolebinding.yaml"}, false)
+	assetToBeApplied, err := tp.AssetNamesInPath(
+		"yamlfilereader",
+		[]string{"yamlfilereader/clusterrolebinding.yaml"},
+		false)
 	if err != nil {
 		return err
 	}
@@ -94,7 +97,11 @@ func applyYamlFile(kubeconfig string) error {
 	//in a non-recursive way
 	//and passing the values to replace
 	klog.Info("Create or update resources")
-	err = a.CreateOrUpdateInPath("yamlfilereader", []string{"yamlfilereader/clusterrolebinding.yaml"}, false, values)
+	err = a.CreateOrUpdateInPath(
+		"yamlfilereader",
+		[]string{"yamlfilereader/clusterrolebinding.yaml"},
+		false,
+		values)
 	if err != nil {
 		return err
 	}
