@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -129,7 +130,7 @@ func (tp *TemplateProcessor) TemplateBytes(
 	values interface{},
 ) ([]byte, error) {
 	var buf bytes.Buffer
-	tmpl, err := template.New("yamls").Parse(string(b))
+	tmpl, err := template.New("yamls").Funcs(sprig.TxtFuncMap()).Parse(string(b))
 	if err != nil {
 		return nil, err
 	}

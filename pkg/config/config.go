@@ -66,11 +66,10 @@ func configFromFile(url, kubeconfig, context string) (*rest.Config, error) {
 				&clientcmd.ConfigOverrides{}).ClientConfig()
 		}
 		return clientcmd.BuildConfigFromFlags(url, kubeconfig)
-	} else {
-		return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
-			&clientcmd.ConfigOverrides{
-				CurrentContext: context,
-			}).ClientConfig()
 	}
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+		&clientcmd.ConfigOverrides{
+			CurrentContext: context,
+		}).ClientConfig()
 }

@@ -49,7 +49,7 @@ func main() {
 
 func applyYamlFile(kubeconfig string) error {
 	const directory = "../resources"
-	//Create a reader on "../../resources" directory
+	//Create a reader on "../resources" directory
 	klog.Infof("Creating the file reader %s", directory)
 	yamlReader := applier.NewYamlFileReader(directory)
 	//Other readers can be used
