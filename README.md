@@ -1,18 +1,11 @@
 # library-go
-This project contains a number of Go utilities for open-cluster-management
+This project contains a number of Kubernetes Go utilities like methods:
 
-## Applier
+- To apply templated resources [applier.md](./docs/applier.md). The generated yamls are automatically sorted.
+- To create clients based on a kubeconfig [client.md](./docs/client.md).
+- To load a kubeconfig [config.md](./docs/config.md)
+...
 
-See [README.md](./pkg/applier/README.md)
+## Documentation
 
-## Client helper
-
-see [README.md](./pkg/client/README.md)
-
-## Config helper
-
-see [README.md](./pkg/config/README.md)
-
-## Unstructured helper
-
-see [README.md](./pkg/unstructured/README.md)
+see [GoDoc](https://pkg.go.dev/github.com/open-cluster-management/library-go)

@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -66,6 +67,15 @@ type Merger func(current,
 	update bool,
 )
 
+var rootAttributes = []string{
+	"spec",
+	"rules",
+	"roleRef",
+	"subjects",
+	"secrets",
+	"imagePullSecrets",
+	"automountServiceAccountToken"}
+
 //DefaultKubernetesMerger merges kubernetes runtime.Object
 //It merges the spec, rules, roleRef, subjects root attribute of a runtime.Object
 //For example a CLusterRoleBinding has a subjects and roleRef fields and so the old
@@ -76,25 +86,17 @@ var DefaultKubernetesMerger Merger = func(current,
 	future *unstructured.Unstructured,
 	update bool,
 ) {
-	if spec, ok := new.Object["spec"]; ok &&
-		!reflect.DeepEqual(spec, current.Object["spec"]) {
-		update = true
-		current.Object["spec"] = spec
-	}
-	if rules, ok := new.Object["rules"]; ok &&
-		!reflect.DeepEqual(rules, current.Object["rules"]) {
-		update = true
-		current.Object["rules"] = rules
-	}
-	if roleRef, ok := new.Object["roleRef"]; ok &&
-		!reflect.DeepEqual(roleRef, current.Object["roleRef"]) {
-		update = true
-		current.Object["roleRef"] = roleRef
-	}
-	if subjects, ok := new.Object["subjects"]; ok &&
-		!reflect.DeepEqual(subjects, current.Object["subjects"]) {
-		update = true
-		current.Object["subjects"] = subjects
+	for _, r := range rootAttributes {
+		if newValue, ok := new.Object[r]; ok {
+			if !reflect.DeepEqual(newValue, current.Object[r]) {
+				update = true
+				current.Object[r] = newValue
+			}
+		} else {
+			if _, ok := current.Object[r]; ok {
+				current.Object[r] = nil
+			}
+		}
 	}
 	return current, update
 }
@@ -125,8 +127,63 @@ func (a *Applier) CreateOrUpdateInPath(
 	return a.CreateOrUpdates(us)
 }
 
-//CreateOrUpdateAssets create or update all resources defined in the assets.
-//The asserts are separated by the delimiter (ie: "---" for yamls)
+//CreateInPath creates the assets found in the path and
+// subpath if recursive is set to true.
+// path: The path were the yaml to apply is located
+// excludes: The list of yamls to exclude
+// recursive: If true all yamls in the path directory and sub-directories will be applied
+// it excludes the assets named in the excluded array
+// it sets the Controller reference if owner and scheme are not nil
+//
+func (a *Applier) CreateInPath(
+	path string,
+	excluded []string,
+	recursive bool,
+	values interface{},
+) error {
+	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+		path,
+		excluded,
+		recursive,
+		values)
+
+	if err != nil {
+		return err
+	}
+	return a.Creates(us)
+}
+
+//UpdateInPath creates or updates the assets found in the path and
+// subpath if recursive is set to true.
+// path: The path were the yaml to apply is located
+// excludes: The list of yamls to exclude
+// recursive: If true all yamls in the path directory and sub-directories will be applied
+// it excludes the assets named in the excluded array
+// it sets the Controller reference if owner and scheme are not nil
+//
+func (a *Applier) UpdateInPath(
+	path string,
+	excluded []string,
+	recursive bool,
+	values interface{},
+) error {
+	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+		path,
+		excluded,
+		recursive,
+		values)
+
+	if err != nil {
+		return err
+	}
+	return a.Updates(us)
+}
+
+// Deprecated: Please use another CreateOrUpdate methods with a YamlStringReader
+// CreateOrUpdateAssets create or update all resources defined in the assets.
+// The asserts are separated by the delimiter (ie: "---" for yamls)
+// However the assets is a parameter it requires a reader to define the ToJSON method.
+// Please use another method with a YamlStringReader
 func (a *Applier) CreateOrUpdateAssets(
 	assets []byte,
 	values interface{},
@@ -139,8 +196,49 @@ func (a *Applier) CreateOrUpdateAssets(
 	return a.CreateOrUpdates(us)
 }
 
-//CreateorUpdateFile create or updates an asset
+//Deprecated: Use CreateOrUpdateResource
+//CreateorUpdateAsset create or updates an asset
 func (a *Applier) CreateOrUpdateAsset(
+	assetName string,
+	values interface{},
+) error {
+	return a.CreateOrUpdateResource(assetName, values)
+}
+
+//CreateorUpdateAsset create or updates an asset
+func (a *Applier) CreateOrUpdateResource(
+	assetName string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateResource(assetName, values)
+	if err != nil {
+		return err
+	}
+	u, err := a.templateProcessor.BytesToUnstructured(b)
+	if err != nil {
+		return err
+	}
+	return a.CreateOrUpdate(u)
+}
+
+//CreateResource create an asset
+func (a *Applier) CreateResource(
+	assetName string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateResource(assetName, values)
+	if err != nil {
+		return err
+	}
+	u, err := a.templateProcessor.BytesToUnstructured(b)
+	if err != nil {
+		return err
+	}
+	return a.Create(u)
+}
+
+//UpdateResource updates an asset
+func (a *Applier) UpdateResource(
 	assetName string,
 	values interface{},
 ) error {
@@ -152,7 +250,7 @@ func (a *Applier) CreateOrUpdateAsset(
 	if err != nil {
 		return err
 	}
-	return a.CreateOrUpdate(u)
+	return a.Update(u)
 }
 
 //CreateOrUpdates an array of unstructured.Unstructured
@@ -169,6 +267,34 @@ func (a *Applier) CreateOrUpdates(
 	return nil
 }
 
+//Creates create resources from an array of unstructured.Unstructured
+func (a *Applier) Creates(
+	us []*unstructured.Unstructured,
+) error {
+	//Create the unstructured items if they don't exist yet
+	for _, u := range us {
+		err := a.Create(u)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//Updates updates resources from an array of unstructured.Unstructured
+func (a *Applier) Updates(
+	us []*unstructured.Unstructured,
+) error {
+	//Update the unstructured items if they don't exist yet
+	for _, u := range us {
+		err := a.Update(u)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 //CreateOrUpdate creates or updates an unstructured object.
 //It will returns an error if it failed and also if it needs to update the object
 //and the applier.Merger is not defined.
@@ -176,42 +302,78 @@ func (a *Applier) CreateOrUpdate(
 	u *unstructured.Unstructured,
 ) error {
 
-	log.V(2).Info("Create or update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
-	//Set controller ref
-	if a.owner != nil && a.scheme != nil {
-		if err := controllerutil.SetControllerReference(a.owner, u, a.scheme); err != nil {
-			log.Error(err, "Failed to SetControllerReference",
-				"Name", u.GetName(),
-				"Namespace", u.GetNamespace())
-			return err
+	klog.V(2).Info("Create or update: ",
+		"Kind: ", u.GetKind(),
+		" Name: ", u.GetName(),
+		" Namespace: ", u.GetNamespace())
+
+	//Check if already exists
+	current := &unstructured.Unstructured{}
+	current.SetGroupVersionKind(u.GroupVersionKind())
+	errGet := a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
+	if errGet != nil {
+		if errors.IsNotFound(errGet) {
+			klog.V(2).Info("Create: ",
+				" Kind: ", current.GetKind(),
+				" Name: ", current.GetName(),
+				" Namespace: ", current.GetNamespace())
+			return a.Create(u)
+		} else {
+			klog.Error(errGet, "Error while create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+			return errGet
 		}
+	} else {
+		klog.V(2).Info("Update:",
+			" Kind: ", current.GetKind(),
+			" Name: ", current.GetName(),
+			" Namespace: ", current.GetNamespace())
+		return a.Update(u)
+	}
+}
+
+//Create creates an unstructured object.
+func (a *Applier) Create(
+	u *unstructured.Unstructured,
+) error {
+
+	klog.V(2).Info("Create ", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	//Set controller ref
+	err := a.setControllerReference(u)
+	if err != nil {
+		return err
+	}
+
+	err = a.client.Create(context.TODO(), u)
+	if err != nil {
+		klog.Error(err, "Unable to create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+		return err
+	}
+
+	return nil
+}
+
+//Update updates an unstructured object.
+//It will returns an error if it failed and also if it needs to update the object
+//and the applier.Merger is not defined.
+func (a *Applier) Update(
+	u *unstructured.Unstructured,
+) error {
+
+	klog.V(2).Info("Create ", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	//Set controller ref
+	err := a.setControllerReference(u)
+	if err != nil {
+		return err
 	}
 
 	//Check if already exists
 	current := &unstructured.Unstructured{}
 	current.SetGroupVersionKind(u.GroupVersionKind())
-	var errGet error
-	errGet = a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
+	errGet := a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
 	if errGet != nil {
-		if errors.IsNotFound(errGet) {
-			log.V(2).Info("Create",
-				"Kind", current.GetKind(),
-				"Name", current.GetName(),
-				"Namespace", current.GetNamespace())
-			err := a.client.Create(context.TODO(), u)
-			if err != nil {
-				log.Error(err, "Unable to create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
-				return err
-			}
-		} else {
-			log.Error(errGet, "Error while create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
-			return errGet
-		}
+		klog.Error(errGet, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+		return errGet
 	} else {
-		log.V(2).Info("Update",
-			"Kind", current.GetKind(),
-			"Name", current.GetName(),
-			"Namespace", current.GetNamespace())
 		if a.merger == nil {
 			return fmt.Errorf("Unable to update %s/%s of Kind %s the merger is nil",
 				current.GetKind(),
@@ -222,11 +384,26 @@ func (a *Applier) CreateOrUpdate(
 		if update {
 			err := a.client.Update(context.TODO(), future)
 			if err != nil {
-				log.Error(err, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+				klog.Error(err, "Error while update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 				return err
 			}
 		} else {
-			log.V(2).Info("No update needed")
+			klog.V(2).Info("No update needed")
+		}
+	}
+	return nil
+
+}
+
+func (a *Applier) setControllerReference(
+	u *unstructured.Unstructured,
+) error {
+	if a.owner != nil && a.scheme != nil {
+		if err := controllerutil.SetControllerReference(a.owner, u, a.scheme); err != nil {
+			klog.Error(err, "Failed to SetControllerReference",
+				"Name", u.GetName(),
+				"Namespace", u.GetNamespace())
+			return err
 		}
 	}
 	return nil

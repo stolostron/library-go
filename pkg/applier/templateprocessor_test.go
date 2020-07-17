@@ -7,7 +7,7 @@ import (
 )
 
 func TestTemplateAssetsToMapOfUnstructured(t *testing.T) {
-	tp, err := NewTemplateProcessor(NewTestReader(), nil)
+	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
 	if err != nil {
 		t.Errorf("Unable to create templateProcessor %s", err.Error())
 	}
@@ -22,7 +22,7 @@ func TestTemplateAssetsToMapOfUnstructured(t *testing.T) {
 		"ClusterRole",
 		"ClusterRoleBinding",
 	}
-	tpNewOrder, err := NewTemplateProcessor(NewTestReader(), &Options{KindsOrder: kindsNewOrder})
+	tpNewOrder, err := NewTemplateProcessor(NewTestReader(assets), &Options{KindsOrder: kindsNewOrder})
 	if err != nil {
 		t.Errorf("Unable to create templateProcessor %s", err.Error())
 	}
@@ -106,7 +106,7 @@ func TestTemplateAssetsToMapOfUnstructured(t *testing.T) {
 }
 
 func TestTemplateProcessor_TemplateAssetsInPathYaml(t *testing.T) {
-	tp, err := NewTemplateProcessor(NewTestReader(), nil)
+	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
 	if err != nil {
 		t.Errorf("Unable to create templateProcessor %s", err.Error())
 	}
@@ -157,7 +157,7 @@ func TestTemplateProcessor_TemplateAssetsInPathYaml(t *testing.T) {
 }
 
 func TestTemplateProcessor_Assets(t *testing.T) {
-	tp, err := NewTemplateProcessor(NewTestReader(), nil)
+	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
 	if err != nil {
 		t.Errorf("Unable to create templateProcessor %s", err.Error())
 	}
@@ -206,7 +206,7 @@ func TestTemplateProcessor_Assets(t *testing.T) {
 }
 
 func TestTemplateProcessor_TemplateBytesUnstructured(t *testing.T) {
-	assets := []byte(`---
+	assetsB := []byte(`---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -270,11 +270,11 @@ rules:
 		{
 			name: "succeed",
 			fields: fields{
-				reader:  NewTestReader(),
+				reader:  NewTestReader(assets),
 				options: &Options{},
 			},
 			args: args{
-				assets:    assets,
+				assets:    assetsB,
 				values:    values,
 				delimiter: "---",
 			},

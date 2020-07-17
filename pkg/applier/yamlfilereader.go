@@ -12,6 +12,10 @@ type YamlFileReader struct {
 	rootDirectory string
 }
 
+var _ TemplateReader = &YamlFileReader{
+	rootDirectory: "",
+}
+
 func (r *YamlFileReader) Asset(
 	name string,
 ) ([]byte, error) {
@@ -20,7 +24,11 @@ func (r *YamlFileReader) Asset(
 
 func (r *YamlFileReader) AssetNames() ([]string, error) {
 	keys := make([]string, 0)
-	err := filepath.Walk(r.rootDirectory, func(path string, info os.FileInfo, err error) error {
+	_, err := os.Open(r.rootDirectory)
+	if err != nil {
+		return keys, err
+	}
+	err = filepath.Walk(r.rootDirectory, func(path string, info os.FileInfo, err error) error {
 		if info != nil {
 			if !info.IsDir() {
 				newPath, err := filepath.Rel(r.rootDirectory, path)
