@@ -302,7 +302,10 @@ func (a *Applier) CreateOrUpdate(
 	u *unstructured.Unstructured,
 ) error {
 
-	klog.V(2).Info("Create or update", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
+	klog.V(2).Info("Create or update: ",
+		"Kind: ", u.GetKind(),
+		" Name: ", u.GetName(),
+		" Namespace: ", u.GetNamespace())
 
 	//Check if already exists
 	current := &unstructured.Unstructured{}
@@ -310,20 +313,20 @@ func (a *Applier) CreateOrUpdate(
 	errGet := a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
 	if errGet != nil {
 		if errors.IsNotFound(errGet) {
-			klog.V(2).Info("Create",
-				"Kind", current.GetKind(),
-				"Name", current.GetName(),
-				"Namespace", current.GetNamespace())
+			klog.V(2).Info("Create: ",
+				" Kind: ", current.GetKind(),
+				" Name: ", current.GetName(),
+				" Namespace: ", current.GetNamespace())
 			return a.Create(u)
 		} else {
 			klog.Error(errGet, "Error while create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 			return errGet
 		}
 	} else {
-		klog.V(2).Info("Update",
-			"Kind", current.GetKind(),
-			"Name", current.GetName(),
-			"Namespace", current.GetNamespace())
+		klog.V(2).Info("Update:",
+			" Kind: ", current.GetKind(),
+			" Name: ", current.GetName(),
+			" Namespace: ", current.GetNamespace())
 		return a.Update(u)
 	}
 }
