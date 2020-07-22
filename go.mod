@@ -11,6 +11,9 @@ require (
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.7 // indirect
 	github.com/nats-io/nats.go v1.10.0
+	github.com/onsi/ginkgo v1.11.0
+	github.com/onsi/gomega v1.8.1
+	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/tools v0.0.0-20200713235242-6acd2ab80ede // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
