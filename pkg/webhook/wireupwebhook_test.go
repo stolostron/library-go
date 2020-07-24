@@ -36,11 +36,11 @@ var _ = Describe("test if wireUp can create CA, service and validatingWebhookCon
 			os.Setenv("DEPLOYMENT_LABEL", testNs)
 
 			wbhName := "test-wbh"
-			setWbhName := func(w *webhook.WebHookWireUp) {
+			setWbhName := func(w *webhook.WireUp) {
 				w.WebhookName = wbhName
 			}
 
-			wireUp, err := webhook.NewWebHookWireUp(k8sManager, stop, setWbhName)
+			wireUp, err := webhook.NewWireUp(k8sManager, stop, setWbhName)
 			Expect(err).NotTo(HaveOccurred())
 
 			caCert, err := wireUp.Attach()

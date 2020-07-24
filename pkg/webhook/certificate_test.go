@@ -18,8 +18,9 @@ import (
 	"os"
 	"testing"
 
-	webhook "github.com/open-cluster-management/library-go/pkg/webhook"
 	k8scertutil "k8s.io/client-go/util/cert"
+
+	webhook "github.com/open-cluster-management/library-go/pkg/webhook"
 )
 
 func TestGenerateSignedWebhookCertificates(t *testing.T) {

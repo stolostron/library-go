@@ -41,11 +41,7 @@ var k8sManager mgr.Manager
 var k8sClient client.Client
 
 var (
-	webhookValidatorName = "test-suite-webhook"
-	validatorPath        = "/v1-validate"
-	webhookName          = "channels.apps.open-cluster-management.webhook"
-	resourceName         = "channels"
-	stop                 = ctrl.SetupSignalHandler()
+	stop = ctrl.SetupSignalHandler()
 )
 
 func TestWebhookWireUp(t *testing.T) {
