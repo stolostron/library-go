@@ -48,7 +48,7 @@ var (
 	stop                 = ctrl.SetupSignalHandler()
 )
 
-func TestChannelWebhook(t *testing.T) {
+func TestWebhookWireUp(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,
