@@ -1,5 +1,4 @@
 // Copyright 2019 The Kubernetes Authors.
-//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,12 +10,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package webhook
+package webhook_test
 
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -26,62 +24,49 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	mgr "sigs.k8s.io/controller-runtime/pkg/manager"
+
+	webhook "github.com/open-cluster-management/library-go/pkg/webhook"
 )
 
-var _ = Describe("test if webhook's supplymentryResource create properly", func() {
-	// somehow this test only fail on travis
-	// make sure this one runs at the end, otherwise, we might register this
-	// webhook before the default one, which cause unexpected results.
-	PContext("given a k8s env, it create svc and validating webhook config", func() {
-		var (
-			lMgr    mgr.Manager
-			certDir string
-			testNs  string
-			caCert  []byte
-			err     error
-			sstop   chan struct{}
-		)
-
+var _ = Describe("test if wireUp can create CA, service and validatingWebhookConfigration", func() {
+	Context("given a manager it create svc and validating webhook config", func() {
 		It("should create a service and ValidatingWebhookConfiguration", func() {
-			lMgr, err = mgr.New(testEnv.Config, mgr.Options{MetricsBindAddress: "0"})
-			Expect(err).Should(BeNil())
-
-			sstop = make(chan struct{})
-			defer close(sstop)
-			go func() {
-				Expect(lMgr.Start(sstop)).Should(Succeed())
-			}()
-
-			certDir = filepath.Join(os.TempDir(), "k8s-webhook-server", "serving-certs")
-			testNs = "default"
+			testNs := "default"
 			os.Setenv("POD_NAMESPACE", testNs)
+			os.Setenv("DEPLOYMENT_LABEL", testNs)
 
-			podNs, err := findEnvVariable(podNamespaceEnvVar)
-			Expect(err).Should(BeNil())
+			wbhName := "test-wbh"
+			setWbhName := func(w *webhook.WebHookWireUp) {
+				w.WebhookName = wbhName
+			}
 
-			caCert, err = GenerateWebhookCerts(certDir, podNs, WebhookServiceName)
-			Expect(err).Should(BeNil())
-			validatorName := "test-validator"
-			wbhSvcNm := "ch-wbh-svc"
-			WireUpWebhookSupplymentryResource(lMgr, stop, wbhSvcNm, validatorName, certDir, caCert,
+			wireUp, err := webhook.NewWebHookWireUp(k8sManager, stop, setWbhName)
+			Expect(err).NotTo(HaveOccurred())
+
+			caCert, err := wireUp.Attach()
+			Expect(err).NotTo(HaveOccurred())
+
+			wireUp.WireUpWebhookSupplymentryResource(caCert,
 				schema.GroupVersionKind{Group: "", Version: "v1", Kind: "channels"},
 				[]admissionv1.OperationType{admissionv1.Create})
 
+			// give some time to allow the service and validtionconfig to come
+			// up
 			time.Sleep(3 * time.Second)
+
 			wbhSvc := &corev1.Service{}
-			svcKey := types.NamespacedName{Name: wbhSvcNm, Namespace: podNs}
-			Expect(lMgr.GetClient().Get(context.TODO(), svcKey, wbhSvc)).Should(Succeed())
+			svcKey := wireUp.WebHookeSvcKey
+			Expect(k8sClient.Get(context.TODO(), svcKey, wbhSvc)).Should(Succeed())
 			defer func() {
-				Expect(lMgr.GetClient().Delete(context.TODO(), wbhSvc)).Should(Succeed())
+				Expect(k8sClient.Delete(context.TODO(), wbhSvc)).Should(Succeed())
 			}()
 
 			wbhCfg := &admissionv1.ValidatingWebhookConfiguration{}
-			cfgKey := types.NamespacedName{Name: validatorName}
-			Expect(lMgr.GetClient().Get(context.TODO(), cfgKey, wbhCfg)).Should(Succeed())
+			cfgKey := types.NamespacedName{Name: webhook.GetValidatorName(wbhName)}
+			Expect(k8sClient.Get(context.TODO(), cfgKey, wbhCfg)).Should(Succeed())
 
 			defer func() {
-				Expect(lMgr.GetClient().Delete(context.TODO(), wbhCfg)).Should(Succeed())
+				Expect(k8sClient.Delete(context.TODO(), wbhCfg)).Should(Succeed())
 			}()
 		})
 	})

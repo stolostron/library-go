@@ -12,27 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webhook
+package webhook_test
 
 import (
-	"context"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
-	admissionv1 "k8s.io/api/admissionregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	mgr "sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -49,29 +42,17 @@ var k8sClient client.Client
 
 var (
 	webhookValidatorName = "test-suite-webhook"
+	validatorPath        = "/v1-validate"
+	webhookName          = "channels.apps.open-cluster-management.webhook"
+	resourceName         = "channels"
 	stop                 = ctrl.SetupSignalHandler()
 )
-
-type fakeHanlder struct {
-	client.Client
-	decoder *admission.Decoder
-}
-
-func (f *fakeHanlder) Handle(ctx context.Context, req admission.Request) admission.Response {
-	return admission.Allowed("")
-}
-
-func (f *fakeHanlder) InjectDecoder(d *admission.Decoder) error {
-	f.decoder = d
-
-	return nil
-}
 
 func TestChannelWebhook(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,
-		"Set-up webhook",
+		"WebHook Test",
 		[]Reporter{printer.NewlineReporter{}})
 }
 
@@ -93,15 +74,12 @@ var _ = BeforeSuite(func(done Done) {
 		apiServerFlags = append(apiServerFlags, customAPIServerFlags...)
 
 		testEnv = &envtest.Environment{
-			CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds"),
-				filepath.Join("..", "..", "deploy", "dependent-crds")},
 			KubeAPIServerFlags: apiServerFlags,
 		}
 	}
 
 	var err error
 	// be careful, if we use shorthand assignment, the the cCfg will be a local variable
-	initializeWebhookInEnvironment()
 	cfg, err := testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
@@ -115,16 +93,11 @@ var _ = BeforeSuite(func(done Done) {
 
 	Expect(err).NotTo(HaveOccurred())
 
-	hookServer := k8sManager.GetWebhookServer()
-
 	k8sClient, err = client.New(testEnv.Config, client.Options{})
 	Expect(err).NotTo(HaveOccurred())
 
-	hookServer.Register(ValidatorPath, &webhook.Admission{Handler: &fakeHanlder{Client: k8sClient}})
-	Expect(err).ToNot(HaveOccurred())
-
 	go func() {
-		Expect(hookServer.Start(stop)).Should(Succeed())
+		Expect(k8sManager.Start(stop)).Should(Succeed())
 	}()
 
 	close(done)
@@ -135,51 +108,3 @@ var _ = AfterSuite(func() {
 	gexec.KillAndWait(5 * time.Second)
 	Expect(testEnv.Stop()).ToNot(HaveOccurred())
 })
-
-func initializeWebhookInEnvironment() {
-	namespacedScopeV1 := admissionv1.NamespacedScope
-	failedTypeV1 := admissionv1.Fail
-	equivalentTypeV1 := admissionv1.Equivalent
-	noSideEffectsV1 := admissionv1.SideEffectClassNone
-	webhookPathV1 := ValidatorPath
-
-	testEnv.WebhookInstallOptions = envtest.WebhookInstallOptions{
-		ValidatingWebhooks: []runtime.Object{
-			&admissionv1.ValidatingWebhookConfiguration{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: webhookValidatorName,
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "ValidatingWebhookConfiguration",
-					APIVersion: "admissionregistration.k8s.io/v1beta1",
-				},
-				Webhooks: []admissionv1.ValidatingWebhook{
-					{
-						Name: webhookName,
-						Rules: []admissionv1.RuleWithOperations{
-							{
-								Operations: []admissionv1.OperationType{"CREATE", "UPDATE"},
-								Rule: admissionv1.Rule{
-									APIGroups:   []string{resourceGroup},
-									APIVersions: []string{resourceVersion},
-									Resources:   []string{resourceName},
-									Scope:       &namespacedScopeV1,
-								},
-							},
-						},
-						FailurePolicy: &failedTypeV1,
-						MatchPolicy:   &equivalentTypeV1,
-						SideEffects:   &noSideEffectsV1,
-						ClientConfig: admissionv1.WebhookClientConfig{
-							Service: &admissionv1.ServiceReference{
-								Name:      "channel-validation-service",
-								Namespace: "default",
-								Path:      &webhookPathV1,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}

@@ -12,31 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webhook
+package webhook_test
 
 import (
 	"os"
 	"testing"
 
+	webhook "github.com/open-cluster-management/library-go/pkg/webhook"
 	k8scertutil "k8s.io/client-go/util/cert"
 )
 
 func TestGenerateSignedWebhookCertificates(t *testing.T) {
-	os.Setenv(podNamespaceEnvVar, "test")
+	webhookServiceName := "test-webhook-svc"
+	webhookServiceNamespace := "default"
 
 	certDir := "/tmp/tmp-cert"
 
 	defer func() {
 		os.RemoveAll(certDir)
-		os.Unsetenv(podNamespaceEnvVar)
 	}()
 
-	podNs, err := findEnvVariable(podNamespaceEnvVar)
-	if err != nil {
-		t.Errorf("failed to get the pod namespace, %v", err)
-	}
-
-	ca, err := GenerateWebhookCerts(certDir, podNs, WebhookServiceName)
+	ca, err := webhook.GenerateWebhookCerts(certDir, webhookServiceNamespace, webhookServiceName)
 	if err != nil {
 		t.Errorf("Generate signed certificate failed, %v", err)
 	}
