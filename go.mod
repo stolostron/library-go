@@ -16,7 +16,7 @@ require (
 	github.com/onsi/gomega v1.8.1
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/tools v0.0.0-20200713235242-6acd2ab80ede // indirect
+	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	k8s.io/api v0.18.4
 	k8s.io/apiextensions-apiserver v0.18.3
@@ -24,7 +24,6 @@ require (
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cluster-registry v0.0.6
 	k8s.io/klog v1.0.0
-	k8s.io/kubectl v0.18.4 // indirect
 	sigs.k8s.io/controller-runtime v0.6.0
 )
 
