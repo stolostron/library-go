@@ -198,10 +198,17 @@ func (tp *TemplateProcessor) AssetNamesInPath(
 		if isExcluded(name, excluded) {
 			continue
 		}
-		if (recursive && strings.HasPrefix(name, path)) ||
+		if (recursive && strings.HasPrefix(filepath.Join(filepath.Dir(name), name), path)) ||
 			(!recursive && filepath.Dir(name) == path) {
 			results = append(results, name)
 		}
+	}
+	if len(results) == 0 {
+		return results,
+			fmt.Errorf("No asset found in path \"%s\" witg excluded %v and recursive %t",
+				path,
+				excluded,
+				recursive)
 	}
 	return results, nil
 }
@@ -283,7 +290,7 @@ func (tp *TemplateProcessor) TemplateAssetsUnstructured(
 func (tp *TemplateProcessor) TemplateResourcesUnstructured(
 	templateNames []string,
 	values interface{}) (us []*unstructured.Unstructured, err error) {
-	templatedAssets, err := tp.TemplateAssets(templateNames, values)
+	templatedAssets, err := tp.TemplateResources(templateNames, values)
 	if err != nil {
 		return nil, err
 	}

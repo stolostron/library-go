@@ -179,7 +179,8 @@ func (a *Applier) UpdateInPath(
 	return a.Updates(us)
 }
 
-// Deprecated: Please use another CreateOrUpdate methods with a YamlStringReader
+// Deprecated: Please use another CreateOrUpdateInPath or CreateOrUpdateResouces
+// methods with a YamlStringReader
 // CreateOrUpdateAssets create or update all resources defined in the assets.
 // The asserts are separated by the delimiter (ie: "---" for yamls)
 // However the assets is a parameter it requires a reader to define the ToJSON method.
@@ -194,6 +195,57 @@ func (a *Applier) CreateOrUpdateAssets(
 		return err
 	}
 	return a.CreateOrUpdates(us)
+}
+
+//CreateOrUpdateResources creates or update resources
+//given an array of resources name
+func (a *Applier) CreateOrUpdateResources(
+	assetNames []string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateResources(assetNames, values)
+	if err != nil {
+		return err
+	}
+	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	if err != nil {
+		return err
+	}
+	return a.CreateOrUpdates(us)
+}
+
+//CreateResources creates resources
+//given an array of resources name
+func (a *Applier) CreateResources(
+	assetNames []string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateResources(assetNames, values)
+	if err != nil {
+		return err
+	}
+	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	if err != nil {
+		return err
+	}
+	return a.Creates(us)
+}
+
+//UpdateResources update resources
+//given an array of resources name
+func (a *Applier) UpdateResources(
+	assetNames []string,
+	values interface{},
+) error {
+	b, err := a.templateProcessor.TemplateResources(assetNames, values)
+	if err != nil {
+		return err
+	}
+	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	if err != nil {
+		return err
+	}
+	return a.Updates(us)
 }
 
 //Deprecated: Use CreateOrUpdateResource
