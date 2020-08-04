@@ -40,7 +40,7 @@ rules:
 func TestNewYamlStringReader(t *testing.T) {
 
 	type args struct {
-		yamls     string
+		Yamls     string
 		delimiter string
 	}
 	tests := []struct {
@@ -51,18 +51,18 @@ func TestNewYamlStringReader(t *testing.T) {
 		{
 			name: "create",
 			args: args{
-				yamls:     assetsYaml,
+				Yamls:     assetsYaml,
 				delimiter: "---",
 			},
 			want: &YamlStringReader{
-				yamls: assetsYamls,
+				Yamls: assetsYamls,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewYamlStringReader(tt.args.yamls, tt.args.delimiter)
-			t.Log(len(got.yamls))
+			got := NewYamlStringReader(tt.args.Yamls, tt.args.delimiter)
+			t.Log(len(got.Yamls))
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewYamlStringReader() = %v, want %v", got, tt.want)
 			}
@@ -72,7 +72,7 @@ func TestNewYamlStringReader(t *testing.T) {
 
 func TestYamlStringReader_Asset(t *testing.T) {
 	type fields struct {
-		yamls []string
+		Yamls []string
 	}
 	type args struct {
 		name string
@@ -87,7 +87,7 @@ func TestYamlStringReader_Asset(t *testing.T) {
 		{
 			name: "get",
 			fields: fields{
-				yamls: assetsYamls,
+				Yamls: assetsYamls,
 			},
 			args: args{
 				name: "1",
@@ -98,7 +98,7 @@ func TestYamlStringReader_Asset(t *testing.T) {
 		{
 			name: "invalid",
 			fields: fields{
-				yamls: assetsYamls,
+				Yamls: assetsYamls,
 			},
 			args: args{
 				name: "hello",
@@ -109,7 +109,7 @@ func TestYamlStringReader_Asset(t *testing.T) {
 		{
 			name: "non-exist",
 			fields: fields{
-				yamls: assetsYamls,
+				Yamls: assetsYamls,
 			},
 			args: args{
 				name: "3",
@@ -121,7 +121,7 @@ func TestYamlStringReader_Asset(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &YamlStringReader{
-				yamls: tt.fields.yamls,
+				Yamls: tt.fields.Yamls,
 			}
 			got, err := r.Asset(tt.args.name)
 			if (err != nil) != tt.wantErr {
@@ -137,7 +137,7 @@ func TestYamlStringReader_Asset(t *testing.T) {
 
 func TestYamlStringReader_AssetNames(t *testing.T) {
 	type fields struct {
-		yamls []string
+		Yamls []string
 	}
 	tests := []struct {
 		name    string
@@ -148,7 +148,7 @@ func TestYamlStringReader_AssetNames(t *testing.T) {
 		{
 			name: "full list",
 			fields: fields{
-				yamls: assetsYamls,
+				Yamls: assetsYamls,
 			},
 			want:    []string{"0", "1", "2"},
 			wantErr: false,
@@ -157,7 +157,7 @@ func TestYamlStringReader_AssetNames(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &YamlStringReader{
-				yamls: tt.fields.yamls,
+				Yamls: tt.fields.Yamls,
 			}
 			got, err := r.AssetNames()
 			if (err != nil) != tt.wantErr {
