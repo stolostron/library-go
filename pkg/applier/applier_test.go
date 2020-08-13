@@ -695,3 +695,101 @@ func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 		})
 	}
 }
+
+func TestApplier_CreateOrUpdateResources(t *testing.T) {
+	testscheme := scheme.Scheme
+
+	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRole{})
+	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
+	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
+
+	sr := NewYamlStringReader(assetsYaml, KubernetesYamlsDelimiter)
+	tp, err := NewTemplateProcessor(sr, nil)
+	if err != nil {
+		t.Errorf("Unable to create applier %s", err.Error())
+	}
+
+	client := fake.NewFakeClient([]runtime.Object{}...)
+
+	a, err := NewApplier(tp, client, nil, nil, nil)
+	if err != nil {
+		t.Errorf("Unable to create applier %s", err.Error())
+	}
+
+	sa := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      values.BootstrapServiceAccountName,
+			Namespace: values.ManagedClusterNamespace,
+		},
+	}
+	clientUpdate := fake.NewFakeClient(sa)
+
+	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger)
+	if err != nil {
+		t.Errorf("Unable to create applier %s", err.Error())
+	}
+
+	clientUpdateNoMerger := fake.NewFakeClient(sa)
+
+	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil)
+	if err != nil {
+		t.Errorf("Unable to create applier %s", err.Error())
+	}
+
+	type args struct {
+		assets []string
+		values interface{}
+	}
+	tests := []struct {
+		name    string
+		fields  Applier
+		args    args
+		wantErr bool
+	}{
+		{
+			name:   "success",
+			fields: *a,
+			args: args{
+				assets: []string{"0", "1", "2"},
+				values: values,
+			},
+			wantErr: false,
+		},
+		{
+			name:   "success update",
+			fields: *aUpdate,
+			args: args{
+				assets: []string{"0", "1", "2"},
+				values: values,
+			},
+			wantErr: false,
+		},
+		{
+			name:   "success update no merger",
+			fields: *aUpdateNoMerger,
+			args: args{
+				assets: []string{"0", "1", "2"},
+				values: values,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &Applier{
+				templateProcessor: tt.fields.templateProcessor,
+				client:            tt.fields.client,
+				owner:             tt.fields.owner,
+				scheme:            tt.fields.scheme,
+				merger:            tt.fields.merger,
+			}
+			if err := a.CreateOrUpdateResources(tt.args.assets, tt.args.values); (err != nil) != tt.wantErr {
+				t.Errorf("Applier.CreateOrUpdateResources() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

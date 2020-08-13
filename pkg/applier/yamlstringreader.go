@@ -8,12 +8,14 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+const KubernetesYamlsDelimiter = "---\n"
+
 type YamlStringReader struct {
-	yamls []string
+	Yamls []string
 }
 
 var _ TemplateReader = &YamlStringReader{
-	yamls: []string{""},
+	Yamls: []string{""},
 }
 
 func (r *YamlStringReader) Asset(
@@ -23,15 +25,15 @@ func (r *YamlStringReader) Asset(
 	if err != nil {
 		return nil, err
 	}
-	if i >= len(r.yamls) {
+	if i >= len(r.Yamls) {
 		return nil, fmt.Errorf("Unknown asset %d", i)
 	}
-	return []byte(r.yamls[i]), nil
+	return []byte(r.Yamls[i]), nil
 }
 
 func (r *YamlStringReader) AssetNames() ([]string, error) {
 	keys := make([]string, 0)
-	for i := range r.yamls {
+	for i := range r.Yamls {
 		keys = append(keys, strconv.Itoa(i))
 	}
 	return keys, nil
@@ -43,16 +45,21 @@ func (*YamlStringReader) ToJSON(
 	return yaml.YAMLToJSON(b)
 }
 
+//NewYamlStringReader returns a YamlStringReader
+//yamls: a string of yaml, separeted by the delimiter. Usually "---\n"
+//delimiter: the delimiter
 func NewYamlStringReader(
 	yamls string,
 	delimiter string,
 ) *YamlStringReader {
 	yamlsArray := make([]string, 0)
 	for _, y := range strings.Split(yamls, delimiter) {
-		yamlsArray = append(yamlsArray, strings.TrimSpace(y))
+		if strings.TrimSpace(y) != "" {
+			yamlsArray = append(yamlsArray, strings.TrimSpace(y))
+		}
 	}
 
 	return &YamlStringReader{
-		yamls: yamlsArray,
+		Yamls: yamlsArray,
 	}
 }
