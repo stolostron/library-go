@@ -23,7 +23,7 @@ func (r *YamlStringReader) Asset(
 ) ([]byte, error) {
 	i, err := strconv.Atoi(name)
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 	if i >= len(r.Yamls) {
 		return nil, fmt.Errorf("Unknown asset %d", i)
