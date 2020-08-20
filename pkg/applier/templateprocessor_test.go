@@ -49,15 +49,15 @@ func TestTemplateAssetsToMapOfUnstructuredWithStringReader(t *testing.T) {
 		t.Errorf("Unable to create templateProcessor %s", err.Error())
 	}
 	kindsOrder := []string{
+		"ServiceAccount",
 		"ClusterRole",
 		"ClusterRoleBinding",
-		"ServiceAccount",
 	}
 
 	kindsNewOrder := []string{
-		"ServiceAccount",
 		"ClusterRole",
 		"ClusterRoleBinding",
+		"ServiceAccount",
 	}
 	tpNewOrder, err := NewTemplateProcessor(NewYamlStringReader(string(assetsB), KubernetesYamlsDelimiter), &Options{KindsOrder: kindsNewOrder})
 	if err != nil {
@@ -148,15 +148,15 @@ func TestTemplateAssetsToMapOfUnstructuredWithTestReady(t *testing.T) {
 		t.Errorf("Unable to create templateProcessor %s", err.Error())
 	}
 	kindsOrder := []string{
+		"ServiceAccount",
 		"ClusterRole",
 		"ClusterRoleBinding",
-		"ServiceAccount",
 	}
 
 	kindsNewOrder := []string{
-		"ServiceAccount",
 		"ClusterRole",
 		"ClusterRoleBinding",
+		"ServiceAccount",
 	}
 	tpNewOrder, err := NewTemplateProcessor(NewTestReader(assets), &Options{KindsOrder: kindsNewOrder})
 	if err != nil {
