@@ -1,20 +1,22 @@
 # Introduction
 
 The file [applier](../pkg/applier) contains an number of methods allowing you to render template yamls. 
-The resources are read by an Go object satisfying the [TemplateReader](pkg/applier/templateProcessor.go) reader.  
+The template support the [text/template](https://golang.org/pkg/text/template/) functions, the [Mastermind/sprig](https://github.com/Masterminds/sprig) functions and you can develop you own functions too [templatefunction.go](../pkg/applier/templatefunction.go).
+A `_helpers.tpl` file can also be included to define your own functions.
+The resources are read by an Go object satisfying the [TemplateReader](../pkg/applier/templateProcessor.go) reader.  
 The reader is embedded in a applier.TemplateProcessor object
 The resources are sorted in order to be applied in a kubernetes environment using a applier.Client
 
 
 ## Implementing a reader
 
-A reader will read assets from a data source. You can find [testreade.go](pkg/applier/testreader.go) an example of a reader which reads the data from memory.
+A reader will read assets from a data source. You can find [testreade.go](../pkg/applier/testreader.go) an example of a reader which reads the data from memory.
 
-A bindata implementation can be found [bindata](examples/applier/bindata/bindata/bindatareader.go)
+A bindata implementation can be found [bindata](../examples/applier/bindata/bindata/bindatareader.go)
 
 ## Methods
 
-In [applier](pkg/applier) there are methods which process the yaml templates, return them as a list of yamls or list of `unstructured.Unstructured`.
+In [applier](../pkg/applier) there are methods which process the yaml templates, return them as a list of yamls or list of `unstructured.Unstructured`.
 There are also methods that sort these processed yaml templates depending of their `kind`. The order is defined in `kindOrder` variable which can be override.
 A method `CreateOrUpdateInPath` creates or update all resources localted in a specific path.
 
