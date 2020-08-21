@@ -16,11 +16,7 @@ deps:
 .PHONY: test
 ## Runs go unit tests
 test:
-	@if ! which kubebuilder > /dev/null; then \
-	  echo "Please install kubebuilder; run 'make deps' to install all dependencies"; \
-	else \
-		$(UNIT_TEST_COMMAND); \
-	fi
+		$(UNIT_TEST_COMMAND); 
 
 .PHONY: go/gosec-install
 ## Installs latest release of Gosec
