@@ -30,7 +30,7 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil)
+	a, err := NewApplier(tp, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -60,21 +60,21 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 	}
 	clientUpdate := fake.NewFakeClient(sa)
 
-	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger)
+	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateMerged := fake.NewFakeClient(saSecrets)
 
-	aUpdateMerged, err := NewApplier(tp, clientUpdateMerged, nil, nil, DefaultKubernetesMerger)
+	aUpdateMerged, err := NewApplier(tp, clientUpdateMerged, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -256,7 +256,7 @@ func TestNewApplier(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewApplier(tt.args.templateProcessor, tt.args.client, tt.args.owner, tt.args.scheme, tt.args.merger)
+			got, err := NewApplier(tt.args.templateProcessor, tt.args.client, tt.args.owner, tt.args.scheme, tt.args.merger, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewApplier() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -399,7 +399,7 @@ func TestApplier_CreateInPath(t *testing.T) {
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil)
+	a, err := NewApplier(tp, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -416,7 +416,7 @@ func TestApplier_CreateInPath(t *testing.T) {
 	}
 	clientUpdate := fake.NewFakeClient(sa)
 
-	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger)
+	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -463,6 +463,7 @@ func TestApplier_CreateInPath(t *testing.T) {
 				owner:             tt.fields.owner,
 				scheme:            tt.fields.scheme,
 				merger:            tt.fields.merger,
+				applierOptions:    tt.fields.applierOptions,
 			}
 			if err := a.CreateInPath(tt.args.path, tt.args.excluded, tt.args.recursive, tt.args.values); (err != nil) != tt.wantErr {
 				t.Errorf("Applier.CreateInPath() error = %v, wantErr %v", err, tt.wantErr)
@@ -485,7 +486,7 @@ func TestApplier_UpdateInPath(t *testing.T) {
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil)
+	a, err := NewApplier(tp, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -516,14 +517,14 @@ func TestApplier_UpdateInPath(t *testing.T) {
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateMerged := fake.NewFakeClient(saSecrets)
 
-	aUpdateMerged, err := NewApplier(tp, clientUpdateMerged, nil, nil, DefaultKubernetesMerger)
+	aUpdateMerged, err := NewApplier(tp, clientUpdateMerged, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -587,6 +588,7 @@ func TestApplier_UpdateInPath(t *testing.T) {
 				owner:             tt.fields.owner,
 				scheme:            tt.fields.scheme,
 				merger:            tt.fields.merger,
+				applierOptions:    tt.fields.applierOptions,
 			}
 			if err := a.UpdateInPath(tt.args.path, tt.args.excluded, tt.args.recursive, tt.args.values); (err != nil) != tt.wantErr {
 				t.Errorf("Applier.UpdateInPath() error = %v, wantErr %v", err, tt.wantErr)
@@ -609,7 +611,7 @@ func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil)
+	a, err := NewApplier(tp, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -626,14 +628,14 @@ func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 	}
 	clientUpdate := fake.NewFakeClient(sa)
 
-	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger)
+	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -688,6 +690,7 @@ func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 				owner:             tt.fields.owner,
 				scheme:            tt.fields.scheme,
 				merger:            tt.fields.merger,
+				applierOptions:    tt.fields.applierOptions,
 			}
 			if err := a.CreateOrUpdateAssets(tt.args.assets, tt.args.values, tt.args.delimiter); (err != nil) != tt.wantErr {
 				t.Errorf("Applier.CreateOrUpdateAssets() error = %v, wantErr %v", err, tt.wantErr)
@@ -711,7 +714,7 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil)
+	a, err := NewApplier(tp, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -728,14 +731,14 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 	}
 	clientUpdate := fake.NewFakeClient(sa)
 
-	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger)
+	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -786,6 +789,7 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 				owner:             tt.fields.owner,
 				scheme:            tt.fields.scheme,
 				merger:            tt.fields.merger,
+				applierOptions:    tt.fields.applierOptions,
 			}
 			if err := a.CreateOrUpdateResources(tt.args.assets, tt.args.values); (err != nil) != tt.wantErr {
 				t.Errorf("Applier.CreateOrUpdateResources() error = %v, wantErr %v", err, tt.wantErr)

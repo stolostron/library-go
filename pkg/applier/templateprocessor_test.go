@@ -275,12 +275,24 @@ func TestTemplateProcessor_TemplateAssetsInPathYaml(t *testing.T) {
 			want:    results,
 			wantErr: false,
 		},
+		{
+			name:   "failed missing values",
+			fields: *tp,
+			args: args{
+				path:      "test",
+				excluded:  nil,
+				recursive: false,
+				values:    missingValues,
+			},
+			want:    results,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.fields.TemplateAssetsInPathYaml(tt.args.path, tt.args.excluded, tt.args.recursive, tt.args.values)
+			got, err := tt.fields.TemplateResourcesInPathYaml(tt.args.path, tt.args.excluded, tt.args.recursive, tt.args.values)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Applier.TemplateAssetsInPathYaml() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Applier.TemplateResourcesInPathYaml() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != nil {
@@ -461,5 +473,30 @@ func TestTemplateProcessor_AssetNamesInPath(t *testing.T) {
 				t.Errorf("TemplateProcessor.AssetNamesInPath() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestTemplateProcessor_helpertpl(t *testing.T) {
+	tpr := NewYamlFileReader("../../test/unit/resources/templates/withhelpers")
+	tp, err := NewTemplateProcessor(tpr, &Options{})
+	if err != nil {
+		t.Error(err)
+	}
+	values := map[string]interface{}{
+		"Values": map[string]string{
+			"name": "TestTemplateProcessor_helpertpl",
+		},
+	}
+	u, err := tp.TemplateAssetsInPathUnstructured(".", nil, false, values)
+	if err != nil {
+		t.Error(err)
+	}
+	if m, ok := u[0].Object["metadata"]; ok {
+		metadata := m.(map[string]interface{})
+		if metadata["name"].(string) != "Test" {
+			t.Errorf("Expecting 'Test' got: %s", metadata["name"])
+		}
+	} else {
+		t.Errorf("Malformed %v", u)
 	}
 }

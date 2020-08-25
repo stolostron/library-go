@@ -35,9 +35,9 @@ type TemplateReader interface {
 	ToJSON(b []byte) ([]byte, error)
 }
 
-//Options defines for the available options for the applier
+//Options defines for the available options for the templateProcessor
 type Options struct {
-	//Override the default order, it contains the kind order which the applier must use before applying all resources.
+	//Override the default order, it contains the kind order which the templateProcess must use to sort all resources.
 	KindsOrder []string
 }
 
@@ -166,7 +166,11 @@ func (tp *TemplateProcessor) TemplateBytes(
 	values interface{},
 ) ([]byte, error) {
 	var buf bytes.Buffer
-	tmpl, err := template.New("yamls").Funcs(ApplierFuncMap()).Funcs(sprig.TxtFuncMap()).Parse(string(b))
+	tmpl, err := template.New("yamls").
+		Option("missingkey=error").
+		Funcs(ApplierFuncMap()).
+		Funcs(sprig.TxtFuncMap()).
+		Parse(string(b))
 	if err != nil {
 		return nil, err
 	}
@@ -236,6 +240,7 @@ func (tp *TemplateProcessor) AssetNamesInPath(
 	if err != nil {
 		return nil, err
 	}
+	klog.V(5).Infof("names: %v", names)
 	for _, name := range names {
 		if isExcluded(name, excluded) {
 			continue
@@ -247,7 +252,7 @@ func (tp *TemplateProcessor) AssetNamesInPath(
 	}
 	if len(results) == 0 {
 		return results,
-			fmt.Errorf("No asset found in path \"%s\" witg excluded %v and recursive %t",
+			fmt.Errorf("No asset found in path \"%s\" with excluded %v and recursive %t",
 				path,
 				excluded,
 				recursive)

@@ -88,3 +88,6 @@ examples:
 	go build -o examples/bin/render-list-yaml examples/applier/render-list-yaml/main.go
 	go build -o examples/bin/render-yaml-in-dir examples/applier/render-yaml-in-dir/main.go
 	
+.PHONY: build
+build:
+	go build -o bin/applier cmd/applier/main.go

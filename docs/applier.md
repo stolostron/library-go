@@ -1,12 +1,25 @@
 # Introduction
 
 The file [applier](../pkg/applier) contains an number of methods allowing you to render template yamls. 
-The template support the [text/template](https://golang.org/pkg/text/template/) functions, the [Mastermind/sprig](https://github.com/Masterminds/sprig) functions and you can develop you own functions too [templatefunction.go](../pkg/applier/templatefunction.go).
-A `_helpers.tpl` file can also be included to define your own functions.
+The template support the [text/template](https://golang.org/pkg/text/template/) framework and so you can use statements defined in that framework.
+As the [Mastermind/sprig](https://github.com/Masterminds/sprig) is also loaded, you can use any functions defined by that framework.
+By enriching the [templatefunction.go](../pkg/applier/templatefunction.go), you can also develop your own functions. Check for example the function `toYaml` in the [templatefunction.go](../pkg/applier/templatefunction.go).
+A `_helpers.tpl` file can also be added to define your own functions.
 The resources are read by an Go object satisfying the [TemplateReader](../pkg/applier/templateProcessor.go) reader.  
 The reader is embedded in a applier.TemplateProcessor object
 The resources are sorted in order to be applied in a kubernetes environment using a applier.Client
 
+## command-line
+
+A command-line is available to apply yamls in a given directory. To generate it run `make build`, the `apply` executable will be in the `bin` directory.
+```
+apply [-d <templates_directory>] [-values <values_file_path>] [-k <kubeconfig_file_path>] [-dry-run] [-v n]
+```
+- `-d` The templates directory, default ".".
+- `-values` The values.yaml file path
+- `-k` The path to the kubeconfig, if not set the KUBECONFIG env var will be use, if not set the default home user localtion is used.
+- `-dry-run` Display only (do not apply) the yamls that will be applied
+- `-v` verbosity level.
 
 ## Implementing a reader
 

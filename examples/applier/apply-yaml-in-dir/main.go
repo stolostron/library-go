@@ -70,7 +70,7 @@ func applyYamlFile(kubeconfig string) error {
 	}
 	//Create an Applier
 	klog.Info("Creating applier")
-	a, err := applier.NewApplier(tp, client, nil, nil, applier.DefaultKubernetesMerger)
+	a, err := applier.NewApplier(tp, client, nil, nil, applier.DefaultKubernetesMerger, nil)
 	if err != nil {
 		return err
 	}
