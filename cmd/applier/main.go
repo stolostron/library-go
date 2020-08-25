@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/open-cluster-management/library-go/pkg/applier"
 	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
@@ -42,7 +43,7 @@ func main() {
 }
 
 func apply(dir, valuesPath, kubeconfigPath, prefix string, dryRun bool) error {
-	b, err := ioutil.ReadFile(valuesPath)
+	b, err := ioutil.ReadFile(filepath.Clean(valuesPath))
 	if err != nil {
 		return err
 	}
