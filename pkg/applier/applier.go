@@ -5,7 +5,6 @@ import (
 	goerr "errors"
 	"fmt"
 	"reflect"
-	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,12 +65,7 @@ func NewApplier(
 		applierOptions = &ApplierOptions{}
 	}
 	if applierOptions.Backoff == nil {
-		applierOptions.Backoff = &wait.Backoff{
-			Steps:    5,
-			Duration: 100 * time.Millisecond,
-			Factor:   5.0,
-			Jitter:   0.1,
-		}
+		applierOptions.Backoff = &retry.DefaultBackoff
 	}
 	return &Applier{
 		templateProcessor: templateProcessor,
