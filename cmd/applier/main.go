@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/open-cluster-management/library-go/pkg/applier"
 	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
 	"gopkg.in/yaml.v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -81,7 +83,15 @@ func apply(dir, valuesPath, kubeconfigPath, prefix string, dryRun bool) error {
 		client = crclient.NewDryRunClient(client)
 	}
 
-	a, err := applier.NewApplier(tp, client, nil, nil, applier.DefaultKubernetesMerger, nil)
+	applierOptions := &applier.ApplierOptions{
+		Backoff: &wait.Backoff{
+			Steps:    4,
+			Duration: 100 * time.Millisecond,
+			Factor:   5.0,
+			Jitter:   0.1,
+		},
+	}
+	a, err := applier.NewApplier(tp, client, nil, nil, applier.DefaultKubernetesMerger, applierOptions)
 	if err != nil {
 		return err
 	}
