@@ -12,6 +12,7 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog"
 )
 
 //TemplateProcessor this structure holds all objects for the TemplateProcessor
@@ -34,24 +35,48 @@ type TemplateReader interface {
 	ToJSON(b []byte) ([]byte, error)
 }
 
-//Options defines for the available options for the applier
+//Options defines for the available options for the templateProcessor
 type Options struct {
-	//Override the default order, it contains the kind order which the applier must use before applying all resources.
+	//Override the default order, it contains the kind order which the templateProcess must use to sort all resources.
 	KindsOrder []string
 }
 
 //defaultKindsOrder the default order
 var defaultKindsOrder = []string{
+	"Namespace",
+	"NetworkPolicy",
+	"ResourceQuota",
+	"LimitRange",
+	"PodSecurityPolicy",
+	"PodDisruptionBudget",
+	"ServiceAccount",
+	"Secret",
+	"SecretList",
+	"ConfigMap",
+	"StorageClass",
+	"PersistentVolume",
+	"PersistentVolumeClaim",
 	"CustomResourceDefinition",
 	"ClusterRole",
+	"ClusterRoleList",
 	"ClusterRoleBinding",
-	"Namespace",
-	"Secret",
-	"ServiceAccount",
+	"ClusterRoleBindingList",
 	"Role",
+	"RoleList",
 	"RoleBinding",
-	"ConfigMap",
+	"RoleBindingList",
+	"Service",
+	"DaemonSet",
+	"Pod",
+	"ReplicationController",
+	"ReplicaSet",
 	"Deployment",
+	"HorizontalPodAutoscaler",
+	"StatefulSet",
+	"Job",
+	"CronJob",
+	"Ingress",
+	"APIService",
 }
 
 //NewTemplateProcessor creates a new applier
@@ -92,13 +117,15 @@ func (tp *TemplateProcessor) TemplateResources(
 	templateNames []string,
 	values interface{},
 ) ([][]byte, error) {
-	results := make([][]byte, len(templateNames))
-	for i, templateName := range templateNames {
+	results := make([][]byte, 0)
+	for _, templateName := range templateNames {
 		result, err := tp.TemplateResource(templateName, values)
 		if err != nil {
 			return nil, err
 		}
-		results[i] = result
+		if result != nil {
+			results = append(results, result)
+		}
 	}
 	return results, nil
 }
@@ -117,11 +144,20 @@ func (tp *TemplateProcessor) TemplateResource(
 	templateName string,
 	values interface{},
 ) ([]byte, error) {
+	klog.V(5).Infof("templateName: %s", templateName)
+	if filepath.Base(templateName) == "_helpers.tpl" {
+		return nil, nil
+	}
+	h, _ := tp.reader.Asset(filepath.Join(filepath.Dir(templateName), "_helpers.tpl"))
 	b, err := tp.reader.Asset(templateName)
 	if err != nil {
 		return nil, err
 	}
-	return tp.TemplateBytes(b, values)
+	klog.V(5).Infof("\nb--->\n%s\n---", string(b))
+	h = append(h, b[:]...)
+	klog.V(5).Infof("\nh+b--->\n%s\n---", string(h))
+	templated, err := tp.TemplateBytes(h, values)
+	return templated, err
 }
 
 //TemplateBytes render the given template with the provided values
@@ -130,13 +166,23 @@ func (tp *TemplateProcessor) TemplateBytes(
 	values interface{},
 ) ([]byte, error) {
 	var buf bytes.Buffer
-	tmpl, err := template.New("yamls").Funcs(sprig.TxtFuncMap()).Parse(string(b))
+	tmpl, err := template.New("yamls").
+		Option("missingkey=error").
+		Funcs(ApplierFuncMap()).
+		Funcs(sprig.TxtFuncMap()).
+		Parse(string(b))
 	if err != nil {
 		return nil, err
 	}
 	err = tmpl.Execute(&buf, values)
 	if err != nil {
 		return nil, err
+	}
+	klog.V(5).Infof("templated:\n%s\n---", buf.String())
+	trim := strings.TrimSuffix(buf.String(), "\n")
+	trim = strings.TrimSpace(trim)
+	if len(trim) == 0 {
+		return nil, nil
 	}
 	return buf.Bytes(), err
 }
@@ -194,6 +240,7 @@ func (tp *TemplateProcessor) AssetNamesInPath(
 	if err != nil {
 		return nil, err
 	}
+	klog.V(5).Infof("names: %v", names)
 	for _, name := range names {
 		if isExcluded(name, excluded) {
 			continue
@@ -205,7 +252,7 @@ func (tp *TemplateProcessor) AssetNamesInPath(
 	}
 	if len(results) == 0 {
 		return results,
-			fmt.Errorf("No asset found in path \"%s\" witg excluded %v and recursive %t",
+			fmt.Errorf("No asset found in path \"%s\" with excluded %v and recursive %t",
 				path,
 				excluded,
 				recursive)
@@ -269,6 +316,7 @@ func (tp *TemplateProcessor) TemplateResourcesInPathUnstructured(
 	if err != nil {
 		return nil, err
 	}
+	klog.V(5).Infof("templateNames: %v", templateNames)
 	us, err = tp.TemplateResourcesUnstructured(templateNames, values)
 	if err != nil {
 		return nil, err
@@ -299,6 +347,9 @@ func (tp *TemplateProcessor) TemplateResourcesUnstructured(
 		return nil, err
 	}
 	tp.sortUnstructuredForApply(us)
+	for _, u := range us {
+		klog.V(5).Infof("TemplateResourcesUnstructured sorted u:%s/%s", u.GetKind(), u.GetName())
+	}
 	return us, nil
 }
 

@@ -16,7 +16,11 @@ deps:
 .PHONY: test
 ## Runs go unit tests
 test:
-	$(UNIT_TEST_COMMAND)
+	@if ! which kubebuilder > /dev/null; then \
+	  echo "Please install kubebuilder, run 'make deps'"; \
+	else \
+		$(UNIT_TEST_COMMAND); \
+	fi
 
 .PHONY: go/gosec-install
 ## Installs latest release of Gosec
@@ -84,3 +88,6 @@ examples:
 	go build -o examples/bin/render-list-yaml examples/applier/render-list-yaml/main.go
 	go build -o examples/bin/render-yaml-in-dir examples/applier/render-yaml-in-dir/main.go
 	
+.PHONY: build
+build:
+	go build -o bin/applier cmd/applier/main.go

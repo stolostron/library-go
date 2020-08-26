@@ -104,7 +104,7 @@ func TestYamlStringReader_Asset(t *testing.T) {
 				name: "hello",
 			},
 			want:    nil,
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "non-exist",

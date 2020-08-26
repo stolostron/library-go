@@ -11,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -28,6 +30,15 @@ type Applier struct {
 	scheme *runtime.Scheme
 	//A merger defining how two objects must be merged
 	merger Merger
+	//applier options for the applier
+	applierOptions *ApplierOptions
+}
+
+//Options defines for the available options for the applier
+type ApplierOptions struct {
+	ClientCreateOption []client.CreateOption
+	ClientUpdateOption []client.UpdateOption
+	Backoff            *wait.Backoff
 }
 
 //NewApplier creates a new client to access kubernetes through the applier.
@@ -42,6 +53,7 @@ func NewApplier(
 	owner metav1.Object,
 	scheme *runtime.Scheme,
 	merger Merger,
+	applierOptions *ApplierOptions,
 ) (*Applier, error) {
 	if templateProcessor == nil {
 		return nil, goerr.New("applier is nil")
@@ -49,12 +61,19 @@ func NewApplier(
 	if client == nil {
 		return nil, goerr.New("client is nil")
 	}
+	if applierOptions == nil {
+		applierOptions = &ApplierOptions{}
+	}
+	if applierOptions.Backoff == nil {
+		applierOptions.Backoff = &retry.DefaultBackoff
+	}
 	return &Applier{
 		templateProcessor: templateProcessor,
 		client:            client,
 		owner:             owner,
 		scheme:            scheme,
 		merger:            merger,
+		applierOptions:    applierOptions,
 	}, nil
 }
 
@@ -397,8 +416,17 @@ func (a *Applier) Create(
 	if err != nil {
 		return err
 	}
-
-	err = a.client.Create(context.TODO(), u)
+	var clientCreateOptions []client.CreateOption
+	if a.applierOptions != nil {
+		clientCreateOptions = a.applierOptions.ClientCreateOption
+	}
+	createOptions := &client.CreateOptions{}
+	clientCreateOption := createOptions.ApplyOptions(clientCreateOptions)
+	err = retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
+		return err != nil
+	}, func() error {
+		return a.client.Create(context.TODO(), u, clientCreateOption)
+	})
 	if err != nil {
 		klog.Error(err, "Unable to create: ",
 			" Kind: ", u.GetKind(),
@@ -446,7 +474,17 @@ func (a *Applier) Update(
 		}
 		future, update := a.merger(current, u)
 		if update {
-			err := a.client.Update(context.TODO(), future)
+			var clientUpdateOptions []client.UpdateOption
+			if a.applierOptions != nil {
+				clientUpdateOptions = a.applierOptions.ClientUpdateOption
+			}
+			updatedOptions := &client.UpdateOptions{}
+			clientUpdateOption := updatedOptions.ApplyOptions(clientUpdateOptions)
+			err = retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
+				return err != nil
+			}, func() error {
+				return a.client.Update(context.TODO(), future, clientUpdateOption)
+			})
 			if err != nil {
 				klog.Error(err, "Error while update: ",
 					" Kind: ", u.GetKind(),

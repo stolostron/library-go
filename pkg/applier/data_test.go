@@ -10,6 +10,12 @@ var values = struct {
 	BootstrapServiceAccountName: "mysa",
 }
 
+var missingValues = struct {
+	ManagedClusterName string
+}{
+	ManagedClusterName: "mycluster",
+}
+
 var assets = map[string]string{
 	"test/clusterrolebinding": `
 apiVersion: rbac.authorization.k8s.io/v1

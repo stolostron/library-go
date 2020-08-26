@@ -1,0 +1,5 @@
+# Copyright (c) 2020 Red Hat, Inc
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ template "myshortname.name" . }}

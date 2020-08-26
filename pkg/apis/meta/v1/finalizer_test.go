@@ -6,12 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
 func TestAddFinalizer(t *testing.T) {
-	testCluster := &clusterregistryv1alpha1.Cluster{
+	testSecret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Cluster",
@@ -24,16 +22,8 @@ func TestAddFinalizer(t *testing.T) {
 				"rcm-api.cluster",
 			},
 		},
-		Status: clusterregistryv1alpha1.ClusterStatus{
-			Conditions: []clusterregistryv1alpha1.ClusterCondition{
-				{
-					Status: corev1.ConditionTrue,
-					Type:   clusterregistryv1alpha1.ClusterOK,
-				},
-			},
-		},
 	}
-	testCluster1 := &clusterregistryv1alpha1.Cluster{
+	testSecret1 := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Cluster",
@@ -47,16 +37,8 @@ func TestAddFinalizer(t *testing.T) {
 				"test-finalizer",
 			},
 		},
-		Status: clusterregistryv1alpha1.ClusterStatus{
-			Conditions: []clusterregistryv1alpha1.ClusterCondition{
-				{
-					Status: corev1.ConditionTrue,
-					Type:   clusterregistryv1alpha1.ClusterOK,
-				},
-			},
-		},
 	}
-	ExpectedtestCluster := &clusterregistryv1alpha1.Cluster{
+	ExpectedtestSecret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Cluster",
@@ -68,25 +50,17 @@ func TestAddFinalizer(t *testing.T) {
 				"propagator.finalizer.mcm.ibm.com",
 				"rcm-api.cluster",
 				"test-finalizer",
-			},
-		},
-		Status: clusterregistryv1alpha1.ClusterStatus{
-			Conditions: []clusterregistryv1alpha1.ClusterCondition{
-				{
-					Status: corev1.ConditionTrue,
-					Type:   clusterregistryv1alpha1.ClusterOK,
-				},
 			},
 		},
 	}
 	tests := []struct {
 		name      string
-		cluster   *clusterregistryv1alpha1.Cluster
+		cluster   *corev1.Secret
 		finalizer string
-		Expected  *clusterregistryv1alpha1.Cluster
+		Expected  *corev1.Secret
 	}{
-		{"add", testCluster, "test-finalizer", ExpectedtestCluster},
-		{"don't add", testCluster1, "test-finalizer", ExpectedtestCluster},
+		{"add", testSecret, "test-finalizer", ExpectedtestSecret},
+		{"don't add", testSecret1, "test-finalizer", ExpectedtestSecret},
 	}
 
 	for _, tt := range tests {
@@ -98,7 +72,7 @@ func TestAddFinalizer(t *testing.T) {
 }
 
 func TestRemoveFinalizer(t *testing.T) {
-	testCluster := &clusterregistryv1alpha1.Cluster{
+	testSecret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Cluster",
@@ -111,16 +85,8 @@ func TestRemoveFinalizer(t *testing.T) {
 				"rcm-api.cluster",
 			},
 		},
-		Status: clusterregistryv1alpha1.ClusterStatus{
-			Conditions: []clusterregistryv1alpha1.ClusterCondition{
-				{
-					Status: corev1.ConditionTrue,
-					Type:   clusterregistryv1alpha1.ClusterOK,
-				},
-			},
-		},
 	}
-	testCluster1 := &clusterregistryv1alpha1.Cluster{
+	testSecret1 := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Cluster",
@@ -134,16 +100,8 @@ func TestRemoveFinalizer(t *testing.T) {
 				"test-finalizer",
 			},
 		},
-		Status: clusterregistryv1alpha1.ClusterStatus{
-			Conditions: []clusterregistryv1alpha1.ClusterCondition{
-				{
-					Status: corev1.ConditionTrue,
-					Type:   clusterregistryv1alpha1.ClusterOK,
-				},
-			},
-		},
 	}
-	ExpectedtestCluster := &clusterregistryv1alpha1.Cluster{
+	ExpectedtestSecret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Cluster",
@@ -156,23 +114,15 @@ func TestRemoveFinalizer(t *testing.T) {
 				"rcm-api.cluster",
 			},
 		},
-		Status: clusterregistryv1alpha1.ClusterStatus{
-			Conditions: []clusterregistryv1alpha1.ClusterCondition{
-				{
-					Status: corev1.ConditionTrue,
-					Type:   clusterregistryv1alpha1.ClusterOK,
-				},
-			},
-		},
 	}
 	tests := []struct {
 		name      string
-		cluster   *clusterregistryv1alpha1.Cluster
+		cluster   *corev1.Secret
 		finalizer string
-		Expected  *clusterregistryv1alpha1.Cluster
+		Expected  *corev1.Secret
 	}{
-		{"don't remove", testCluster, "test-finalizer", ExpectedtestCluster},
-		{"remove", testCluster1, "test-finalizer", ExpectedtestCluster},
+		{"don't remove", testSecret, "test-finalizer", ExpectedtestSecret},
+		{"remove", testSecret1, "test-finalizer", ExpectedtestSecret},
 	}
 
 	for _, tt := range tests {

@@ -1,20 +1,35 @@
 # Introduction
 
 The file [applier](../pkg/applier) contains an number of methods allowing you to render template yamls. 
-The resources are read by an Go object satisfying the [TemplateReader](pkg/applier/templateProcessor.go) reader.  
+The template support the [text/template](https://golang.org/pkg/text/template/) framework and so you can use statements defined in that framework.
+As the [Mastermind/sprig](https://github.com/Masterminds/sprig) is also loaded, you can use any functions defined by that framework.
+By enriching the [templatefunction.go](../pkg/applier/templatefunction.go), you can also develop your own functions. Check for example the function `toYaml` in the [templatefunction.go](../pkg/applier/templatefunction.go).
+A `_helpers.tpl` file can also be added to define your own functions.
+The resources are read by an Go object satisfying the [TemplateReader](../pkg/applier/templateProcessor.go) reader.  
 The reader is embedded in a applier.TemplateProcessor object
 The resources are sorted in order to be applied in a kubernetes environment using a applier.Client
 
+## command-line
+
+A command-line is available to apply yamls in a given directory. To generate it run `make build`, the `apply` executable will be in the `bin` directory.
+```
+apply [-d <templates_directory>] [-values <values_file_path>] [-k <kubeconfig_file_path>] [-dry-run] [-v n]
+```
+- `-d` The templates directory, default ".".
+- `-values` The values.yaml file path
+- `-k` The path to the kubeconfig, if not set the KUBECONFIG env var will be use, if not set the default home user localtion is used.
+- `-dry-run` Display only (do not apply) the yamls that will be applied
+- `-v` verbosity level.
 
 ## Implementing a reader
 
-A reader will read assets from a data source. You can find [testreade.go](pkg/applier/testreader.go) an example of a reader which reads the data from memory.
+A reader will read assets from a data source. You can find [testreade.go](../pkg/applier/testreader.go) an example of a reader which reads the data from memory.
 
-A bindata implementation can be found [bindata](examples/applier/bindata/bindata/bindatareader.go)
+A bindata implementation can be found [bindata](../examples/applier/bindata/bindata/bindatareader.go)
 
 ## Methods
 
-In [applier](pkg/applier) there are methods which process the yaml templates, return them as a list of yamls or list of `unstructured.Unstructured`.
+In [applier](../pkg/applier) there are methods which process the yaml templates, return them as a list of yamls or list of `unstructured.Unstructured`.
 There are also methods that sort these processed yaml templates depending of their `kind`. The order is defined in `kindOrder` variable which can be override.
 A method `CreateOrUpdateInPath` creates or update all resources localted in a specific path.
 

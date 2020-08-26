@@ -1,12 +1,13 @@
 
 # Directories
-.go
-.vscode
 vendor
 test/unit/coverage
 examples/bin
+bin
 
 # Files
+.go
+.vscode
 coverage.out
 gosec.json
 report.json
