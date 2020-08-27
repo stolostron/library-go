@@ -264,11 +264,7 @@ func (a *Applier) CreateOrUpdateResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResources(assetNames, values)
-	if err != nil {
-		return err
-	}
-	us, err := a.templateProcessor.BytesArrayToUnstructured(b)
+	us, err := a.toUnstructureds(assetNames, values)
 	if err != nil {
 		return err
 	}
