@@ -37,12 +37,23 @@ type TemplateReader interface {
 
 //Options defines for the available options for the templateProcessor
 type Options struct {
+	KindsOrder SortType
 	//Override the default order, it contains the kind order which the templateProcess must use to sort all resources.
-	KindsOrder []string
+	CreateUpdateKindsOrder KindsOrder
+	DeleteKindsOrder       KindsOrder
 }
 
+type SortType string
+
+const (
+	sortTypeCreateUpdate SortType = "create-update"
+	sortTypeDelete       SortType = "delete"
+)
+
+type KindsOrder []string
+
 //defaultKindsOrder the default order
-var defaultKindsOrder = []string{
+var defaultCreateUpdateKindsOrder KindsOrder = []string{
 	"Namespace",
 	"NetworkPolicy",
 	"ResourceQuota",
@@ -79,6 +90,43 @@ var defaultKindsOrder = []string{
 	"APIService",
 }
 
+var defaultDeleteKindsOrder KindsOrder = []string{
+	"APIService",
+	"Ingress",
+	"Service",
+	"CronJob",
+	"Job",
+	"StatefulSet",
+	"HorizontalPodAutoscaler",
+	"Deployment",
+	"ReplicaSet",
+	"ReplicationController",
+	"Pod",
+	"DaemonSet",
+	"RoleBindingList",
+	"RoleBinding",
+	"RoleList",
+	"Role",
+	"ClusterRoleBindingList",
+	"ClusterRoleBinding",
+	"ClusterRoleList",
+	"ClusterRole",
+	"CustomResourceDefinition",
+	"PersistentVolumeClaim",
+	"PersistentVolume",
+	"StorageClass",
+	"ConfigMap",
+	"SecretList",
+	"Secret",
+	"ServiceAccount",
+	"PodDisruptionBudget",
+	"PodSecurityPolicy",
+	"LimitRange",
+	"ResourceQuota",
+	"NetworkPolicy",
+	"Namespace",
+}
+
 //NewTemplateProcessor creates a new applier
 //reader: The TemplateReader to use to read the templates
 //options: The possible options for the templateprocessor
@@ -92,13 +140,27 @@ func NewTemplateProcessor(
 	if options == nil {
 		options = &Options{}
 	}
-	if options.KindsOrder == nil {
-		options.KindsOrder = defaultKindsOrder
+	if options.CreateUpdateKindsOrder == nil {
+		options.CreateUpdateKindsOrder = defaultCreateUpdateKindsOrder
+	}
+	if options.DeleteKindsOrder == nil {
+		options.DeleteKindsOrder = defaultDeleteKindsOrder
+	}
+	if options.KindsOrder == "" {
+		options.KindsOrder = sortTypeCreateUpdate
 	}
 	return &TemplateProcessor{
 		reader:  reader,
 		options: options,
 	}, nil
+}
+
+func (tp *TemplateProcessor) SetDeleteOrder() {
+	tp.options.KindsOrder = sortTypeDelete
+}
+
+func (tp *TemplateProcessor) SetCreateUpdateOrder() {
+	tp.options.KindsOrder = sortTypeCreateUpdate
 }
 
 //Deprecated: Use TemplateResources
@@ -215,17 +277,25 @@ func (tp *TemplateProcessor) TemplateResourcesInPathYaml(
 	results := make([][]byte, len(us))
 
 	for i, u := range us {
-		j, err := u.MarshalJSON()
-		if err != nil {
-			return nil, err
-		}
-		y, err := yaml.JSONToYAML(j)
+		y, err := ToYAMLUnstructured(u)
 		if err != nil {
 			return nil, err
 		}
 		results[i] = y
 	}
 	return results, nil
+}
+
+func ToYAMLUnstructured(u *unstructured.Unstructured) ([]byte, error) {
+	j, err := u.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	y, err := yaml.JSONToYAML(j)
+	if err != nil {
+		return nil, err
+	}
+	return y, nil
 }
 
 //AssetNamesInPath returns all asset names with a given path and
@@ -436,12 +506,22 @@ func (tp *TemplateProcessor) less(u1, u2 *unstructured.Unstructured) bool {
 
 func (tp *TemplateProcessor) weight(u *unstructured.Unstructured) int {
 	kind := u.GetKind()
-	for i, k := range tp.options.KindsOrder {
+	var order KindsOrder
+	var defaultWeight int
+	switch tp.options.KindsOrder {
+	case sortTypeCreateUpdate:
+		order = tp.options.CreateUpdateKindsOrder
+		defaultWeight = len(tp.options.CreateUpdateKindsOrder)
+	case sortTypeDelete:
+		order = tp.options.DeleteKindsOrder
+		defaultWeight = -1
+	}
+	for i, k := range order {
 		if k == kind {
 			return i
 		}
 	}
-	return len(tp.options.KindsOrder)
+	return defaultWeight
 }
 
 func ConvertArrayOfBytesToString(in [][]byte) (out string) {

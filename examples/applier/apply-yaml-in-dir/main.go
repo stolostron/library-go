@@ -56,12 +56,6 @@ func applyYamlFile(kubeconfig string) error {
 	//yamlReader := bindata.NewBindataReader()
 	//yamlReader := applier.NewYamlStringReader(yamls,"---")
 
-	//Create a templateProcessor with that reader
-	klog.Infof("Creating TemplateProcessor...")
-	tp, err := applier.NewTemplateProcessor(yamlReader, &applier.Options{})
-	if err != nil {
-		return err
-	}
 	//Create a client
 	klog.Infof("Creating kubernetes client using kubeconfig located at %s", kubeconfig)
 	client, err := libgoclient.NewDefaultClient(kubeconfig, client.Options{})
@@ -70,7 +64,7 @@ func applyYamlFile(kubeconfig string) error {
 	}
 	//Create an Applier
 	klog.Info("Creating applier")
-	a, err := applier.NewApplier(tp, client, nil, nil, applier.DefaultKubernetesMerger, nil)
+	a, err := applier.NewApplier(yamlReader, &applier.Options{}, client, nil, nil, applier.DefaultKubernetesMerger, nil)
 	if err != nil {
 		return err
 	}
@@ -84,16 +78,6 @@ func applyYamlFile(kubeconfig string) error {
 		ManagedClusterNamespace:     "mycluster",
 		BootstrapServiceAccountName: "mybootstrapserviceaccount",
 	}
-
-	//Just to display what will be applied
-	assetToBeApplied, err := tp.AssetNamesInPath(
-		"yamlfilereader",
-		[]string{"yamlfilereader/clusterrolebinding.yaml"},
-		false)
-	if err != nil {
-		return err
-	}
-	klog.Infof("Resources to be created: %v", assetToBeApplied)
 
 	//Create the resources starting with path "yamlfilereader" in the reader
 	//excluding "clusterrolebinding.yaml"

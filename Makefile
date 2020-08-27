@@ -91,3 +91,15 @@ examples:
 .PHONY: build
 build:
 	go build -o bin/applier cmd/applier/main.go
+
+.PHONY: functional-test
+functional-test:
+	ginkgo -tags functional -v --slowSpecThreshold=30 test/functional -test.coverprofile test/functional/coverage/functional.out -- -v=1
+
+.PHONY: functional-test-full
+functional-test-full: 
+	@build/run-functional-tests.sh
+
+.PHONY: kind-cluster-setup
+kind-cluster-setup: 
+	@echo "No setup to do"

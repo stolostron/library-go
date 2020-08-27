@@ -16,6 +16,7 @@ addons:
 
 stages:
   - unit-test
+  - functional-test
 
 before_script:
   - make deps
@@ -27,3 +28,9 @@ jobs:
       script:
         - make test
         - make sonar/go
+
+    - stage: functional-test
+      name: "Run functional-test"
+      script:
+        - make functional-test-full
+  
