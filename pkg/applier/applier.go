@@ -369,6 +369,18 @@ func (a *Applier) UpdateResource(
 	return a.Update(u)
 }
 
+//DeleteResource delete an resource
+func (a *Applier) DeleteResource(
+	assetName string,
+	values interface{},
+) error {
+	u, err := a.toUnstructured(assetName, values)
+	if err != nil {
+		return err
+	}
+	return a.Delete(u)
+}
+
 func (a *Applier) toUnstructured(assetName string,
 	values interface{},
 ) (u *unstructured.Unstructured, err error) {
@@ -381,22 +393,6 @@ func (a *Applier) toUnstructured(assetName string,
 		return nil, err
 	}
 	return u, err
-}
-
-//DeleteResource delete an resource
-func (a *Applier) DeleteResource(
-	assetName string,
-	values interface{},
-) error {
-	b, err := a.templateProcessor.TemplateResource(assetName, values)
-	if err != nil {
-		return err
-	}
-	u, err := a.templateProcessor.BytesToUnstructured(b)
-	if err != nil {
-		return err
-	}
-	return a.Delete(u)
 }
 
 //CreateOrUpdates an array of unstructured.Unstructured
