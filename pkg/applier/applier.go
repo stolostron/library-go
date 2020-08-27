@@ -543,7 +543,6 @@ func (a *Applier) Create(
 			klog.V(2).Infof("Error while creating %s", err)
 		}
 		return err
-		// return c.Create(context.TODO(), u, clientCreateOption)
 	})
 	if err != nil {
 		klog.V(2).Info("Unable to create:", "Error", err,
