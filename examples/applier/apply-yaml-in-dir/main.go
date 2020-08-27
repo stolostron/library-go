@@ -9,6 +9,7 @@ import (
 	// "github.com/open-cluster-management/library-go/examples/applier/bindata"
 	"github.com/open-cluster-management/library-go/pkg/applier"
 	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
+	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -51,10 +52,10 @@ func applyYamlFile(kubeconfig string) error {
 	const directory = "../resources"
 	//Create a reader on "../resources" directory
 	klog.Infof("Creating the file reader %s", directory)
-	yamlReader := applier.NewYamlFileReader(directory)
+	yamlReader := templateprocessor.NewYamlFileReader(directory)
 	//Other readers can be used
 	//yamlReader := bindata.NewBindataReader()
-	//yamlReader := applier.NewYamlStringReader(yamls,"---")
+	//yamlReader := templateprocessor.NewYamlStringReader(yamls,"---")
 
 	//Create a client
 	klog.Infof("Creating kubernetes client using kubeconfig located at %s", kubeconfig)
@@ -64,7 +65,7 @@ func applyYamlFile(kubeconfig string) error {
 	}
 	//Create an Applier
 	klog.Info("Creating applier")
-	a, err := applier.NewApplier(yamlReader, &applier.Options{}, client, nil, nil, applier.DefaultKubernetesMerger, nil)
+	a, err := applier.NewApplier(yamlReader, &templateprocessor.Options{}, client, nil, nil, applier.DefaultKubernetesMerger, nil)
 	if err != nil {
 		return err
 	}

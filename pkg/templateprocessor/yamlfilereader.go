@@ -1,4 +1,4 @@
-package applier
+package templateprocessor
 
 import (
 	"io/ioutil"

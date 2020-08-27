@@ -10,6 +10,7 @@ import (
 
 	"github.com/open-cluster-management/library-go/pkg/applier"
 	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
+	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	"gopkg.in/yaml.v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
@@ -75,7 +76,7 @@ func apply(dir, valuesPath, kubeconfigPath, prefix string, timeout int, dryRun, 
 	if err != nil {
 		return err
 	}
-	applierOptions := &applier.ApplierOptions{
+	applierOptions := &applier.Options{
 		Backoff: &wait.Backoff{
 			Steps:    4,
 			Duration: 500 * time.Millisecond,
@@ -89,7 +90,13 @@ func apply(dir, valuesPath, kubeconfigPath, prefix string, timeout int, dryRun, 
 	if dryRun {
 		client = crclient.NewDryRunClient(client)
 	}
-	a, err := applier.NewApplier(applier.NewYamlFileReader(dir), &applier.Options{}, client, nil, nil, applier.DefaultKubernetesMerger, applierOptions)
+	a, err := applier.NewApplier(templateprocessor.NewYamlFileReader(dir),
+		&templateprocessor.Options{},
+		client,
+		nil,
+		nil,
+		applier.DefaultKubernetesMerger,
+		applierOptions)
 	if err != nil {
 		return err
 	}

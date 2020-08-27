@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	libgocrdv1 "github.com/open-cluster-management/library-go/pkg/apis/meta/v1/crd"
+	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo"
@@ -22,7 +23,7 @@ import (
 var _ = Describe("Applier", func() {
 	Context("Without Finalizer and no force", func() {
 		It("Apply create/update resources", func() {
-			applier, err := applier.NewApplier(applier.NewYamlFileReader("resources/sample"), nil, clientHub, nil, nil, applier.DefaultKubernetesMerger, nil)
+			applier, err := applier.NewApplier(templateprocessor.NewYamlFileReader("resources/sample"), nil, clientHub, nil, nil, applier.DefaultKubernetesMerger, nil)
 			Expect(err).Should(BeNil())
 
 			b, err := ioutil.ReadFile(filepath.Clean("resources/sample/values.yaml"))
@@ -63,7 +64,7 @@ var _ = Describe("Applier", func() {
 		})
 
 		It("Apply delete resources", func() {
-			applier, err := applier.NewApplier(applier.NewYamlFileReader("resources/sample"), nil, clientHub, nil, nil, applier.DefaultKubernetesMerger, nil)
+			applier, err := applier.NewApplier(templateprocessor.NewYamlFileReader("resources/sample"), nil, clientHub, nil, nil, applier.DefaultKubernetesMerger, nil)
 			Expect(err).Should(BeNil())
 
 			b, err := ioutil.ReadFile(filepath.Clean("resources/sample/values.yaml"))
@@ -106,7 +107,7 @@ var _ = Describe("Applier", func() {
 
 	Context("With Finalizer and force", func() {
 		It("Apply create/update resourcese", func() {
-			applier, err := applier.NewApplier(applier.NewYamlFileReader("resources/sample_with_finalizers"), nil, clientHub, nil, nil, applier.DefaultKubernetesMerger, nil)
+			applier, err := applier.NewApplier(templateprocessor.NewYamlFileReader("resources/sample_with_finalizers"), nil, clientHub, nil, nil, applier.DefaultKubernetesMerger, nil)
 			Expect(err).Should(BeNil())
 
 			b, err := ioutil.ReadFile(filepath.Clean("resources/sample/values.yaml"))
@@ -147,13 +148,13 @@ var _ = Describe("Applier", func() {
 		})
 
 		It("Apply delete resources", func() {
-			applier, err := applier.NewApplier(applier.NewYamlFileReader("resources/sample_with_finalizers"),
+			applier, err := applier.NewApplier(templateprocessor.NewYamlFileReader("resources/sample_with_finalizers"),
 				nil,
 				clientHub,
 				nil,
 				nil,
 				applier.DefaultKubernetesMerger,
-				&applier.ApplierOptions{
+				&applier.Options{
 					ForceDelete: true,
 				})
 			Expect(err).Should(BeNil())

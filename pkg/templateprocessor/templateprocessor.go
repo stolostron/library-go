@@ -1,4 +1,4 @@
-package applier
+package templateprocessor
 
 import (
 	"bytes"
@@ -412,7 +412,7 @@ func (tp *TemplateProcessor) TemplateResourcesUnstructured(
 	if err != nil {
 		return nil, err
 	}
-	us, err = tp.bytesArrayToUnstructured(templatedAssets)
+	us, err = tp.BytesArrayToUnstructured(templatedAssets)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +446,7 @@ func (tp *TemplateProcessor) TemplateBytesUnstructured(
 		}
 		templatedAssetsArray = append(templatedAssetsArray, []byte(y))
 	}
-	us, err = tp.bytesArrayToUnstructured(templatedAssetsArray)
+	us, err = tp.BytesArrayToUnstructured(templatedAssetsArray)
 	if err != nil {
 		return nil, err
 	}
@@ -455,8 +455,8 @@ func (tp *TemplateProcessor) TemplateBytesUnstructured(
 
 }
 
-//bytesArrayToUnstructured transform a [][]byte to an []*unstructured.Unstructured using the TemplateProcessor reader
-func (tp *TemplateProcessor) bytesArrayToUnstructured(assets [][]byte) (us []*unstructured.Unstructured, err error) {
+//BytesArrayToUnstructured transform a [][]byte to an []*unstructured.Unstructured using the TemplateProcessor reader
+func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*unstructured.Unstructured, err error) {
 	us = make([]*unstructured.Unstructured, len(assets))
 	for i, b := range assets {
 		u, err := tp.BytesToUnstructured(b)
@@ -466,11 +466,6 @@ func (tp *TemplateProcessor) bytesArrayToUnstructured(assets [][]byte) (us []*un
 		us[i] = u
 	}
 	return us, nil
-}
-
-//Deprecated: Developer should not use this method
-func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*unstructured.Unstructured, err error) {
-	return tp.bytesArrayToUnstructured(assets)
 }
 
 //BytesToUnstructured transform a []byte to an *unstructured.Unstructured using the TemplateProcessor reader

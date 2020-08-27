@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,11 +23,11 @@ import (
 //Applier structure to access kubernetes through the applier
 type Applier struct {
 	//Templateprocessor reader
-	templateReader TemplateReader
+	templateReader templateprocessor.TemplateReader
 	//TemplateProcessor options
-	templateProcessorOptions *Options
+	templateProcessorOptions *templateprocessor.Options
 	//TemplateProcessor
-	templateProcessor *TemplateProcessor
+	templateProcessor *templateprocessor.TemplateProcessor
 	//The client-go kubernetes client
 	client client.Client
 	//The owner of the created object
@@ -36,11 +37,11 @@ type Applier struct {
 	//A merger defining how two objects must be merged
 	merger Merger
 	//applier options for the applier
-	applierOptions *ApplierOptions
+	applierOptions *Options
 }
 
 //Options defines for the available options for the applier
-type ApplierOptions struct {
+type Options struct {
 	ClientCreateOption []client.CreateOption
 	ClientUpdateOption []client.UpdateOption
 	ClientDeleteOption []client.DeleteOption
@@ -56,15 +57,15 @@ type ApplierOptions struct {
 //scheme: The object scheme for the setControllerReference, the reference is not if nil.
 //merger: The function implementing the way how the resources must be merged
 func NewApplier(
-	templateReader TemplateReader,
-	templateProcessorOptions *Options,
+	templateReader templateprocessor.TemplateReader,
+	templateProcessorOptions *templateprocessor.Options,
 	client client.Client,
 	owner metav1.Object,
 	scheme *runtime.Scheme,
 	merger Merger,
-	applierOptions *ApplierOptions,
+	applierOptions *Options,
 ) (*Applier, error) {
-	templateProcessor, err := NewTemplateProcessor(templateReader, templateProcessorOptions)
+	templateProcessor, err := templateprocessor.NewTemplateProcessor(templateReader, templateProcessorOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +73,7 @@ func NewApplier(
 		return nil, goerr.New("client is nil")
 	}
 	if applierOptions == nil {
-		applierOptions = &ApplierOptions{}
+		applierOptions = &Options{}
 	}
 	if applierOptions.Backoff == nil {
 		applierOptions.Backoff = &retry.DefaultBackoff
@@ -267,7 +268,7 @@ func (a *Applier) CreateOrUpdateResources(
 	if err != nil {
 		return err
 	}
-	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	us, err := a.templateProcessor.BytesArrayToUnstructured(b)
 	if err != nil {
 		return err
 	}
@@ -280,11 +281,7 @@ func (a *Applier) CreateResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResources(assetNames, values)
-	if err != nil {
-		return err
-	}
-	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	us, err := a.toUnstructured(assetNames, values)
 	if err != nil {
 		return err
 	}
@@ -297,11 +294,7 @@ func (a *Applier) UpdateResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResources(assetNames, values)
-	if err != nil {
-		return err
-	}
-	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	us, err := a.toUnstructured(assetNames, values)
 	if err != nil {
 		return err
 	}
@@ -314,15 +307,25 @@ func (a *Applier) DeleteResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResources(assetNames, values)
-	if err != nil {
-		return err
-	}
-	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	us, err := a.toUnstructured(assetNames, values)
 	if err != nil {
 		return err
 	}
 	return a.Deletes(us)
+}
+
+func (a *Applier) toUnstructured(assetNames []string,
+	values interface{},
+) (us []*unstructured.Unstructured, err error) {
+	b, err := a.templateProcessor.TemplateResources(assetNames, values)
+	if err != nil {
+		return nil, err
+	}
+	us, err = a.templateProcessor.BytesArrayToUnstructured(b)
+	if err != nil {
+		return nil, err
+	}
+	return us, err
 }
 
 //Deprecated: Use CreateOrUpdateResource
@@ -716,11 +719,11 @@ func (a *Applier) Delete(
 }
 
 func printUnstructure(u *unstructured.Unstructured) {
-	b, err := ToYAMLUnstructured(u)
+	b, err := templateprocessor.ToYAMLUnstructured(u)
 	if err != nil {
 		fmt.Printf("Unable to unmarshal %v\n Error: %s\n", u, err)
 	}
-	fmt.Printf("%s\n%s", string(b), KubernetesYamlsDelimiter)
+	fmt.Printf("%s\n%s", string(b), templateprocessor.KubernetesYamlsDelimiter)
 }
 
 func (a *Applier) setControllerReference(

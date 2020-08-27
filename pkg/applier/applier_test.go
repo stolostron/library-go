@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -24,7 +25,7 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	reader := NewTestReader(assets)
+	reader := templateprocessor.NewTestReader(assets)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
@@ -196,8 +197,8 @@ func TestNewApplier(t *testing.T) {
 		return nil, true
 	}
 	type args struct {
-		reader                   TemplateReader
-		templateProcessorOptions *Options
+		reader                   templateprocessor.TemplateReader
+		templateProcessorOptions *templateprocessor.Options
 		client                   crclient.Client
 		owner                    metav1.Object
 		scheme                   *runtime.Scheme
@@ -212,7 +213,7 @@ func TestNewApplier(t *testing.T) {
 		{
 			name: "Succeed",
 			args: args{
-				reader:                   NewTestReader(assets),
+				reader:                   templateprocessor.NewTestReader(assets),
 				templateProcessorOptions: nil,
 				client:                   client,
 				owner:                    owner,
@@ -220,7 +221,7 @@ func TestNewApplier(t *testing.T) {
 				merger:                   merger,
 			},
 			want: &Applier{
-				templateProcessor: &TemplateProcessor{},
+				templateProcessor: &templateprocessor.TemplateProcessor{},
 				client:            client,
 				owner:             owner,
 				scheme:            scheme,
@@ -294,7 +295,7 @@ func TestApplier_setControllerReference(t *testing.T) {
 	}
 
 	type fields struct {
-		templateProcessor *TemplateProcessor
+		templateProcessor *templateprocessor.TemplateProcessor
 		client            crclient.Client
 		owner             metav1.Object
 		scheme            *runtime.Scheme
@@ -393,7 +394,7 @@ func TestApplier_CreateInPath(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	reader := NewTestReader(assets)
+	reader := templateprocessor.NewTestReader(assets)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
@@ -477,7 +478,7 @@ func TestApplier_UpdateInPath(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	reader := NewTestReader(assets)
+	reader := templateprocessor.NewTestReader(assets)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
@@ -599,7 +600,7 @@ func TestApplier_DeleteInPath(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	reader := NewTestReader(assets)
+	reader := templateprocessor.NewTestReader(assets)
 
 	sa := &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
@@ -679,7 +680,7 @@ func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	reader := NewTestReader(assets)
+	reader := templateprocessor.NewTestReader(assets)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
@@ -778,7 +779,7 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	reader := NewYamlStringReader(assetsYaml, KubernetesYamlsDelimiter)
+	reader := templateprocessor.NewYamlStringReader(assetsYaml, templateprocessor.KubernetesYamlsDelimiter)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 

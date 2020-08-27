@@ -1,4 +1,4 @@
-package applier
+package templateprocessor
 
 var values = struct {
 	ManagedClusterName          string
@@ -8,6 +8,12 @@ var values = struct {
 	ManagedClusterName:          "mycluster",
 	ManagedClusterNamespace:     "myclusterns",
 	BootstrapServiceAccountName: "mysa",
+}
+
+var missingValues = struct {
+	ManagedClusterName string
+}{
+	ManagedClusterName: "mycluster",
 }
 
 var assets = map[string]string{
@@ -89,4 +95,14 @@ rules:
   resources: ["managedclusters"]
   resourceNames: ["{{ .ManagedClusterName }}"]
   verbs: ["get"]
+`
+
+var assetServiceAccount = `
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .BootstrapServiceAccountName }}"
+  namespace: "{{ .ManagedClusterNamespace }}"
+secrets:
+- name: mysecret
 `
