@@ -281,7 +281,7 @@ func (a *Applier) CreateResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	us, err := a.toUnstructured(assetNames, values)
+	us, err := a.toUnstructureds(assetNames, values)
 	if err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func (a *Applier) UpdateResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	us, err := a.toUnstructured(assetNames, values)
+	us, err := a.toUnstructureds(assetNames, values)
 	if err != nil {
 		return err
 	}
@@ -307,14 +307,14 @@ func (a *Applier) DeleteResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	us, err := a.toUnstructured(assetNames, values)
+	us, err := a.toUnstructureds(assetNames, values)
 	if err != nil {
 		return err
 	}
 	return a.Deletes(us)
 }
 
-func (a *Applier) toUnstructured(assetNames []string,
+func (a *Applier) toUnstructureds(assetNames []string,
 	values interface{},
 ) (us []*unstructured.Unstructured, err error) {
 	b, err := a.templateProcessor.TemplateResources(assetNames, values)
@@ -342,11 +342,7 @@ func (a *Applier) CreateOrUpdateResource(
 	assetName string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResource(assetName, values)
-	if err != nil {
-		return err
-	}
-	u, err := a.templateProcessor.BytesToUnstructured(b)
+	u, err := a.toUnstructured(assetName, values)
 	if err != nil {
 		return err
 	}
@@ -358,11 +354,7 @@ func (a *Applier) CreateResource(
 	assetName string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResource(assetName, values)
-	if err != nil {
-		return err
-	}
-	u, err := a.templateProcessor.BytesToUnstructured(b)
+	u, err := a.toUnstructured(assetName, values)
 	if err != nil {
 		return err
 	}
@@ -374,15 +366,25 @@ func (a *Applier) UpdateResource(
 	assetName string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateAsset(assetName, values)
-	if err != nil {
-		return err
-	}
-	u, err := a.templateProcessor.BytesToUnstructured(b)
+	u, err := a.toUnstructured(assetName, values)
 	if err != nil {
 		return err
 	}
 	return a.Update(u)
+}
+
+func (a *Applier) toUnstructured(assetName string,
+	values interface{},
+) (u *unstructured.Unstructured, err error) {
+	b, err := a.templateProcessor.TemplateResource(assetName, values)
+	if err != nil {
+		return nil, err
+	}
+	u, err = a.templateProcessor.BytesToUnstructured(b)
+	if err != nil {
+		return nil, err
+	}
+	return u, err
 }
 
 //DeleteResource delete an resource
@@ -543,7 +545,6 @@ func (a *Applier) Create(
 			klog.V(2).Infof("Error while creating %s", err)
 		}
 		return err
-		// return c.Create(context.TODO(), u, clientCreateOption)
 	})
 	if err != nil {
 		klog.V(2).Info("Unable to create:", "Error", err,
