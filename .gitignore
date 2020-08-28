@@ -12,3 +12,10 @@ coverage.out
 gosec.json
 report.json
 .DS_Store
+kind_kubeconfig.yaml
+
+# test outputs
+test/functional/tmp
+test/functional/coverage
+kind_kubeconfig.yaml
+

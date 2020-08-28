@@ -1,4 +1,4 @@
-package applier
+package templateprocessor
 
 import (
 	"encoding/base64"

@@ -10,6 +10,7 @@ import (
 
 	"github.com/open-cluster-management/library-go/pkg/applier"
 	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
+	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	"gopkg.in/yaml.v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
@@ -24,17 +25,23 @@ func main() {
 	var kubeconfigPath string
 	var dryRun bool
 	var prefix string
+	var delete bool
+	var timeout int
+	var force bool
 	klog.InitFlags(nil)
 	flag.StringVar(&dir, "d", ".", "The directory containing the templates, default '.'")
 	flag.StringVar(&valuesPath, "values", "values.yaml", "The directory containing the templates, default 'values.yaml'")
 	flag.StringVar(&kubeconfigPath, "k", "", "The kubeconfig file")
 	flag.BoolVar(&dryRun, "dry-run", false, "if set only the rendered yaml will be shown, default false")
 	flag.StringVar(&prefix, "p", "", "The prefix to add to each value names, for example 'Values'")
+	flag.BoolVar(&delete, "delete", false, "if set only the resource defined in the yamls will be deleted, default false")
+	flag.IntVar(&timeout, "t", 5, "Timeout in second to apply one resource, default 5 sec")
+	flag.BoolVar(&force, "force", false, "If set, the finalizers will be removed before delete")
 	flag.Parse()
 
-	err := apply(dir, valuesPath, kubeconfigPath, prefix, dryRun)
+	err := apply(dir, valuesPath, kubeconfigPath, prefix, timeout, dryRun, delete, force)
 	if err != nil {
-		klog.Errorf("Failed to apply due to error: %s", err)
+		fmt.Printf("Failed to apply due to error: %s", err)
 		os.Exit(1)
 	}
 	if dryRun {
@@ -44,7 +51,7 @@ func main() {
 	}
 }
 
-func apply(dir, valuesPath, kubeconfigPath, prefix string, dryRun bool) error {
+func apply(dir, valuesPath, kubeconfigPath, prefix string, timeout int, dryRun, delete, force bool) error {
 	b, err := ioutil.ReadFile(filepath.Clean(valuesPath))
 	if err != nil {
 		return err
@@ -65,37 +72,39 @@ func apply(dir, valuesPath, kubeconfigPath, prefix string, dryRun bool) error {
 
 	klog.V(5).Infof("values:\n%v", values)
 
-	tp, err := applier.NewTemplateProcessor(applier.NewYamlFileReader(dir), &applier.Options{})
-	if err != nil {
-		return err
-	}
-
 	client, err := libgoclient.NewDefaultClient(kubeconfigPath, crclient.Options{})
 	if err != nil {
 		return err
 	}
-	if dryRun {
-		bb, err := tp.TemplateResourcesInPathYaml("", nil, true, values)
-		if err != nil {
-			return err
-		}
-		fmt.Print(applier.ConvertArrayOfBytesToString(bb))
-		client = crclient.NewDryRunClient(client)
-	}
-
-	applierOptions := &applier.ApplierOptions{
+	applierOptions := &applier.Options{
 		Backoff: &wait.Backoff{
 			Steps:    4,
-			Duration: 100 * time.Millisecond,
+			Duration: 500 * time.Millisecond,
 			Factor:   5.0,
 			Jitter:   0.1,
+			Cap:      time.Duration(timeout) * time.Second,
 		},
+		DryRun:      dryRun,
+		ForceDelete: force,
 	}
-	a, err := applier.NewApplier(tp, client, nil, nil, applier.DefaultKubernetesMerger, applierOptions)
+	if dryRun {
+		client = crclient.NewDryRunClient(client)
+	}
+	a, err := applier.NewApplier(templateprocessor.NewYamlFileReader(dir),
+		&templateprocessor.Options{},
+		client,
+		nil,
+		nil,
+		applier.DefaultKubernetesMerger,
+		applierOptions)
 	if err != nil {
 		return err
 	}
-	err = a.CreateOrUpdateInPath("", nil, true, values)
+	if delete {
+		err = a.DeleteInPath("", nil, true, values)
+	} else {
+		err = a.CreateOrUpdateInPath("", nil, true, values)
+	}
 	if err != nil {
 		return err
 	}

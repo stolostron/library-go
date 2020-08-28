@@ -5,8 +5,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,14 +25,11 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
-	if err != nil {
-		t.Errorf("Unable to create applier %s", err.Error())
-	}
+	reader := templateprocessor.NewTestReader(assets)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil, nil)
+	a, err := NewApplier(reader, nil, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -60,21 +59,21 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 	}
 	clientUpdate := fake.NewFakeClient(sa)
 
-	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
+	aUpdate, err := NewApplier(reader, nil, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateMerged := fake.NewFakeClient(saSecrets)
 
-	aUpdateMerged, err := NewApplier(tp, clientUpdateMerged, nil, nil, DefaultKubernetesMerger, nil)
+	aUpdateMerged, err := NewApplier(reader, nil, clientUpdateMerged, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -186,7 +185,6 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 }
 
 func TestNewApplier(t *testing.T) {
-	tp := &TemplateProcessor{}
 	client := fake.NewFakeClient([]runtime.Object{}...)
 	owner := &corev1.Secret{}
 	scheme := &runtime.Scheme{}
@@ -199,11 +197,12 @@ func TestNewApplier(t *testing.T) {
 		return nil, true
 	}
 	type args struct {
-		templateProcessor *TemplateProcessor
-		client            crclient.Client
-		owner             metav1.Object
-		scheme            *runtime.Scheme
-		merger            Merger
+		reader                   templateprocessor.TemplateReader
+		templateProcessorOptions *templateprocessor.Options
+		client                   crclient.Client
+		owner                    metav1.Object
+		scheme                   *runtime.Scheme
+		merger                   Merger
 	}
 	tests := []struct {
 		name    string
@@ -214,14 +213,15 @@ func TestNewApplier(t *testing.T) {
 		{
 			name: "Succeed",
 			args: args{
-				templateProcessor: tp,
-				client:            client,
-				owner:             owner,
-				scheme:            scheme,
-				merger:            merger,
+				reader:                   templateprocessor.NewTestReader(assets),
+				templateProcessorOptions: nil,
+				client:                   client,
+				owner:                    owner,
+				scheme:                   scheme,
+				merger:                   merger,
 			},
 			want: &Applier{
-				templateProcessor: tp,
+				templateProcessor: &templateprocessor.TemplateProcessor{},
 				client:            client,
 				owner:             owner,
 				scheme:            scheme,
@@ -232,11 +232,12 @@ func TestNewApplier(t *testing.T) {
 		{
 			name: "Failed no templateProcessor",
 			args: args{
-				templateProcessor: nil,
-				client:            client,
-				owner:             owner,
-				scheme:            scheme,
-				merger:            merger,
+				reader:                   nil,
+				templateProcessorOptions: nil,
+				client:                   client,
+				owner:                    owner,
+				scheme:                   scheme,
+				merger:                   merger,
 			},
 			want:    nil,
 			wantErr: true,
@@ -244,11 +245,12 @@ func TestNewApplier(t *testing.T) {
 		{
 			name: "Failed no client",
 			args: args{
-				templateProcessor: tp,
-				client:            nil,
-				owner:             owner,
-				scheme:            scheme,
-				merger:            merger,
+				reader:                   nil,
+				templateProcessorOptions: nil,
+				client:                   nil,
+				owner:                    owner,
+				scheme:                   scheme,
+				merger:                   merger,
 			},
 			want:    nil,
 			wantErr: true,
@@ -256,7 +258,7 @@ func TestNewApplier(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewApplier(tt.args.templateProcessor, tt.args.client, tt.args.owner, tt.args.scheme, tt.args.merger, nil)
+			got, err := NewApplier(tt.args.reader, tt.args.templateProcessorOptions, tt.args.client, tt.args.owner, tt.args.scheme, tt.args.merger, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewApplier() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -293,7 +295,7 @@ func TestApplier_setControllerReference(t *testing.T) {
 	}
 
 	type fields struct {
-		templateProcessor *TemplateProcessor
+		templateProcessor *templateprocessor.TemplateProcessor
 		client            crclient.Client
 		owner             metav1.Object
 		scheme            *runtime.Scheme
@@ -392,14 +394,11 @@ func TestApplier_CreateInPath(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
-	if err != nil {
-		t.Errorf("Unable to create applier %s", err.Error())
-	}
+	reader := templateprocessor.NewTestReader(assets)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil, nil)
+	a, err := NewApplier(reader, nil, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -416,7 +415,7 @@ func TestApplier_CreateInPath(t *testing.T) {
 	}
 	clientUpdate := fake.NewFakeClient(sa)
 
-	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
+	aUpdate, err := NewApplier(reader, nil, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -479,14 +478,11 @@ func TestApplier_UpdateInPath(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
-	if err != nil {
-		t.Errorf("Unable to create applier %s", err.Error())
-	}
+	reader := templateprocessor.NewTestReader(assets)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil, nil)
+	a, err := NewApplier(reader, nil, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -517,14 +513,14 @@ func TestApplier_UpdateInPath(t *testing.T) {
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateMerged := fake.NewFakeClient(saSecrets)
 
-	aUpdateMerged, err := NewApplier(tp, clientUpdateMerged, nil, nil, DefaultKubernetesMerger, nil)
+	aUpdateMerged, err := NewApplier(reader, nil, clientUpdateMerged, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -597,6 +593,86 @@ func TestApplier_UpdateInPath(t *testing.T) {
 	}
 }
 
+func TestApplier_DeleteInPath(t *testing.T) {
+	testscheme := scheme.Scheme
+
+	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRole{})
+	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
+	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
+
+	reader := templateprocessor.NewTestReader(assets)
+
+	sa := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      values.BootstrapServiceAccountName,
+			Namespace: values.ManagedClusterNamespace,
+		},
+	}
+
+	client := fake.NewFakeClient(sa)
+
+	a, err := NewApplier(reader, nil, client, nil, nil, nil, nil)
+	if err != nil {
+		t.Errorf("Unable to create applier %s", err.Error())
+	}
+
+	type args struct {
+		path      string
+		excluded  []string
+		recursive bool
+		values    interface{}
+	}
+	tests := []struct {
+		name    string
+		fields  Applier
+		args    args
+		wantErr bool
+	}{
+		{
+			name:   "success delete",
+			fields: *a,
+			args: args{
+				path: "test",
+				excluded: []string{
+					"test/clusterrolebinding",
+					"test/clusterrole",
+				},
+				recursive: false,
+				values:    values,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &Applier{
+				templateProcessor: tt.fields.templateProcessor,
+				client:            tt.fields.client,
+				owner:             tt.fields.owner,
+				scheme:            tt.fields.scheme,
+				merger:            tt.fields.merger,
+				applierOptions:    tt.fields.applierOptions,
+			}
+			if err := a.DeleteInPath(tt.args.path, tt.args.excluded, tt.args.recursive, tt.args.values); (err != nil) != tt.wantErr {
+				t.Errorf("Applier.DeleteInPath() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			saa := &corev1.ServiceAccount{}
+			err := client.Get(context.TODO(),
+				types.NamespacedName{
+					Name:      sa.GetName(),
+					Namespace: sa.GetNamespace()},
+				saa)
+			if err != nil && !errors.IsNotFound(err) {
+				t.Error(err)
+			}
+		})
+	}
+}
+
 func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 	testscheme := scheme.Scheme
 
@@ -604,14 +680,11 @@ func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	tp, err := NewTemplateProcessor(NewTestReader(assets), nil)
-	if err != nil {
-		t.Errorf("Unable to create applier %s", err.Error())
-	}
+	reader := templateprocessor.NewTestReader(assets)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil, nil)
+	a, err := NewApplier(reader, nil, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -628,14 +701,14 @@ func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 	}
 	clientUpdate := fake.NewFakeClient(sa)
 
-	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
+	aUpdate, err := NewApplier(reader, nil, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -706,15 +779,11 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 	testscheme.AddKnownTypes(rbacv1.SchemeGroupVersion, &rbacv1.ClusterRoleBinding{})
 	testscheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ServiceAccount{})
 
-	sr := NewYamlStringReader(assetsYaml, KubernetesYamlsDelimiter)
-	tp, err := NewTemplateProcessor(sr, nil)
-	if err != nil {
-		t.Errorf("Unable to create applier %s", err.Error())
-	}
+	reader := templateprocessor.NewYamlStringReader(assetsYaml, templateprocessor.KubernetesYamlsDelimiter)
 
 	client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(tp, client, nil, nil, nil, nil)
+	a, err := NewApplier(reader, nil, client, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -731,14 +800,14 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 	}
 	clientUpdate := fake.NewFakeClient(sa)
 
-	aUpdate, err := NewApplier(tp, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
+	aUpdate, err := NewApplier(reader, nil, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(tp, clientUpdateNoMerger, nil, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}

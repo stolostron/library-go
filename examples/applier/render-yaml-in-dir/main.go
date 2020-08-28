@@ -7,7 +7,8 @@ import (
 	"os"
 
 	// "github.com/open-cluster-management/library-go/examples/applier/bindata"
-	"github.com/open-cluster-management/library-go/pkg/applier"
+
+	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	"k8s.io/klog"
 )
 
@@ -43,14 +44,14 @@ func renderYamlFile() error {
 	const directory = "../resources"
 	//Create a reader on "../resources" directory
 	klog.Infof("Creating the file reader %s", directory)
-	yamlReader := applier.NewYamlFileReader(directory)
+	yamlReader := templateprocessor.NewYamlFileReader(directory)
 	//Other readers can be used
 	//yamlReader := bindata.NewBindataReader()
-	//yamlReader := applier.NewYamlStringReader(yamls,"---")
+	//yamlReader := templateprocessor.NewYamlStringReader(yamls,"---")
 
 	//Create a templateProcessor with that reader
 	klog.Infof("Creating TemplateProcessor...")
-	tp, err := applier.NewTemplateProcessor(yamlReader, &applier.Options{})
+	tp, err := templateprocessor.NewTemplateProcessor(yamlReader, &templateprocessor.Options{})
 	if err != nil {
 		return err
 	}
@@ -89,6 +90,6 @@ func renderYamlFile() error {
 	if err != nil {
 		return err
 	}
-	klog.Infof("Generated resources yamls\n%s", applier.ConvertArrayOfBytesToString(out))
+	klog.Infof("Generated resources yamls\n%s", templateprocessor.ConvertArrayOfBytesToString(out))
 	return nil
 }

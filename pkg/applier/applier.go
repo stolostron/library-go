@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -20,8 +23,12 @@ import (
 
 //Applier structure to access kubernetes through the applier
 type Applier struct {
-	//An TemplateProcessor
-	templateProcessor *TemplateProcessor
+	//Templateprocessor reader
+	templateReader templateprocessor.TemplateReader
+	//TemplateProcessor options
+	templateProcessorOptions *templateprocessor.Options
+	//TemplateProcessor
+	templateProcessor *templateprocessor.TemplateProcessor
 	//The client-go kubernetes client
 	client client.Client
 	//The owner of the created object
@@ -31,14 +38,23 @@ type Applier struct {
 	//A merger defining how two objects must be merged
 	merger Merger
 	//applier options for the applier
-	applierOptions *ApplierOptions
+	applierOptions *Options
 }
 
 //Options defines for the available options for the applier
-type ApplierOptions struct {
+type Options struct {
+	//The option used when a resource is created
 	ClientCreateOption []client.CreateOption
+	//The option used when a resource is updated
 	ClientUpdateOption []client.UpdateOption
-	Backoff            *wait.Backoff
+	//The option used when a resource is deleted
+	ClientDeleteOption []client.DeleteOption
+	//Defines the parameters for retrying a transaction if it fails.
+	Backoff *wait.Backoff
+	//If true, the client will be set for dryrun
+	DryRun bool
+	//If true, the finalizers will be removed after deletion.
+	ForceDelete bool
 }
 
 //NewApplier creates a new client to access kubernetes through the applier.
@@ -48,21 +64,23 @@ type ApplierOptions struct {
 //scheme: The object scheme for the setControllerReference, the reference is not if nil.
 //merger: The function implementing the way how the resources must be merged
 func NewApplier(
-	templateProcessor *TemplateProcessor,
+	templateReader templateprocessor.TemplateReader,
+	templateProcessorOptions *templateprocessor.Options,
 	client client.Client,
 	owner metav1.Object,
 	scheme *runtime.Scheme,
 	merger Merger,
-	applierOptions *ApplierOptions,
+	applierOptions *Options,
 ) (*Applier, error) {
-	if templateProcessor == nil {
-		return nil, goerr.New("applier is nil")
+	templateProcessor, err := templateprocessor.NewTemplateProcessor(templateReader, templateProcessorOptions)
+	if err != nil {
+		return nil, err
 	}
 	if client == nil {
 		return nil, goerr.New("client is nil")
 	}
 	if applierOptions == nil {
-		applierOptions = &ApplierOptions{}
+		applierOptions = &Options{}
 	}
 	if applierOptions.Backoff == nil {
 		applierOptions.Backoff = &retry.DefaultBackoff
@@ -134,6 +152,7 @@ func (a *Applier) CreateOrUpdateInPath(
 	recursive bool,
 	values interface{},
 ) error {
+	a.templateProcessor.SetCreateUpdateOrder()
 	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
 		path,
 		excluded,
@@ -160,6 +179,7 @@ func (a *Applier) CreateInPath(
 	recursive bool,
 	values interface{},
 ) error {
+	a.templateProcessor.SetCreateUpdateOrder()
 	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
 		path,
 		excluded,
@@ -186,6 +206,7 @@ func (a *Applier) UpdateInPath(
 	recursive bool,
 	values interface{},
 ) error {
+	a.templateProcessor.SetCreateUpdateOrder()
 	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
 		path,
 		excluded,
@@ -196,6 +217,33 @@ func (a *Applier) UpdateInPath(
 		return err
 	}
 	return a.Updates(us)
+}
+
+//DeleteInPath delete the assets found in the path and
+// subpath if recursive is set to true.
+// path: The path were the yaml to apply is located
+// excludes: The list of yamls to exclude
+// recursive: If true all yamls in the path directory and sub-directories will be applied
+// it excludes the assets named in the excluded array
+// it sets the Controller reference if owner and scheme are not nil
+//
+func (a *Applier) DeleteInPath(
+	path string,
+	excluded []string,
+	recursive bool,
+	values interface{},
+) error {
+	a.templateProcessor.SetDeleteOrder()
+	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+		path,
+		excluded,
+		recursive,
+		values)
+
+	if err != nil {
+		return err
+	}
+	return a.Deletes(us)
 }
 
 // Deprecated: Please use another CreateOrUpdateInPath or CreateOrUpdateResouces
@@ -209,6 +257,7 @@ func (a *Applier) CreateOrUpdateAssets(
 	values interface{},
 	delimiter string,
 ) error {
+	a.templateProcessor.SetCreateUpdateOrder()
 	us, err := a.templateProcessor.TemplateBytesUnstructured(assets, values, delimiter)
 	if err != nil {
 		return err
@@ -222,11 +271,7 @@ func (a *Applier) CreateOrUpdateResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResources(assetNames, values)
-	if err != nil {
-		return err
-	}
-	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	us, err := a.toUnstructureds(assetNames, values)
 	if err != nil {
 		return err
 	}
@@ -239,11 +284,7 @@ func (a *Applier) CreateResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResources(assetNames, values)
-	if err != nil {
-		return err
-	}
-	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	us, err := a.toUnstructureds(assetNames, values)
 	if err != nil {
 		return err
 	}
@@ -256,15 +297,38 @@ func (a *Applier) UpdateResources(
 	assetNames []string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResources(assetNames, values)
-	if err != nil {
-		return err
-	}
-	us, err := a.templateProcessor.bytesArrayToUnstructured(b)
+	us, err := a.toUnstructureds(assetNames, values)
 	if err != nil {
 		return err
 	}
 	return a.Updates(us)
+}
+
+//DeleteResources deletes resources
+//given an array of resources name
+func (a *Applier) DeleteResources(
+	assetNames []string,
+	values interface{},
+) error {
+	us, err := a.toUnstructureds(assetNames, values)
+	if err != nil {
+		return err
+	}
+	return a.Deletes(us)
+}
+
+func (a *Applier) toUnstructureds(assetNames []string,
+	values interface{},
+) (us []*unstructured.Unstructured, err error) {
+	b, err := a.templateProcessor.TemplateResources(assetNames, values)
+	if err != nil {
+		return nil, err
+	}
+	us, err = a.templateProcessor.BytesArrayToUnstructured(b)
+	if err != nil {
+		return nil, err
+	}
+	return us, err
 }
 
 //Deprecated: Use CreateOrUpdateResource
@@ -281,11 +345,7 @@ func (a *Applier) CreateOrUpdateResource(
 	assetName string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResource(assetName, values)
-	if err != nil {
-		return err
-	}
-	u, err := a.templateProcessor.BytesToUnstructured(b)
+	u, err := a.toUnstructured(assetName, values)
 	if err != nil {
 		return err
 	}
@@ -297,11 +357,7 @@ func (a *Applier) CreateResource(
 	assetName string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateResource(assetName, values)
-	if err != nil {
-		return err
-	}
-	u, err := a.templateProcessor.BytesToUnstructured(b)
+	u, err := a.toUnstructured(assetName, values)
 	if err != nil {
 		return err
 	}
@@ -313,15 +369,37 @@ func (a *Applier) UpdateResource(
 	assetName string,
 	values interface{},
 ) error {
-	b, err := a.templateProcessor.TemplateAsset(assetName, values)
-	if err != nil {
-		return err
-	}
-	u, err := a.templateProcessor.BytesToUnstructured(b)
+	u, err := a.toUnstructured(assetName, values)
 	if err != nil {
 		return err
 	}
 	return a.Update(u)
+}
+
+//DeleteResource delete an resource
+func (a *Applier) DeleteResource(
+	assetName string,
+	values interface{},
+) error {
+	u, err := a.toUnstructured(assetName, values)
+	if err != nil {
+		return err
+	}
+	return a.Delete(u)
+}
+
+func (a *Applier) toUnstructured(assetName string,
+	values interface{},
+) (u *unstructured.Unstructured, err error) {
+	b, err := a.templateProcessor.TemplateResource(assetName, values)
+	if err != nil {
+		return nil, err
+	}
+	u, err = a.templateProcessor.BytesToUnstructured(b)
+	if err != nil {
+		return nil, err
+	}
+	return u, err
 }
 
 //CreateOrUpdates an array of unstructured.Unstructured
@@ -366,6 +444,20 @@ func (a *Applier) Updates(
 	return nil
 }
 
+//Delete deletes resources from an array of unstructured.Unstructured
+func (a *Applier) Deletes(
+	us []*unstructured.Unstructured,
+) error {
+	//Update the unstructured items if they don't exist yet
+	for _, u := range us {
+		err := a.Delete(u)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 //CreateOrUpdate creates or updates an unstructured object.
 //It will returns an error if it failed and also if it needs to update the object
 //and the applier.Merger is not defined.
@@ -381,7 +473,21 @@ func (a *Applier) CreateOrUpdate(
 	//Check if already exists
 	current := &unstructured.Unstructured{}
 	current.SetGroupVersionKind(u.GroupVersionKind())
-	errGet := a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
+	errGet := retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
+		if err != nil {
+			klog.V(2).Infof("Retry Get %s", err)
+			return true
+		}
+		return false
+	}, func() error {
+		err := a.client.Get(context.TODO(),
+			types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()},
+			current)
+		if err != nil {
+			klog.V(2).Infof("Error while creating %s", err)
+		}
+		return err
+	})
 	if errGet != nil {
 		if errors.IsNotFound(errGet) {
 			klog.V(2).Info("Create: ",
@@ -390,7 +496,6 @@ func (a *Applier) CreateOrUpdate(
 				" Namespace: ", u.GetNamespace())
 			return a.Create(u)
 		} else {
-			klog.Error(errGet, "Error while create", "Kind", u.GetKind(), "Name", u.GetName(), "Namespace", u.GetNamespace())
 			return errGet
 		}
 	} else {
@@ -422,13 +527,26 @@ func (a *Applier) Create(
 	}
 	createOptions := &client.CreateOptions{}
 	clientCreateOption := createOptions.ApplyOptions(clientCreateOptions)
+	c := a.client
+	if a.applierOptions.DryRun {
+		printUnstructure(u)
+		c = client.NewDryRunClient(c)
+	}
 	err = retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
-		return err != nil
+		if err != nil {
+			klog.V(2).Infof("Retry create %s", err)
+			return true
+		}
+		return false
 	}, func() error {
-		return a.client.Create(context.TODO(), u, clientCreateOption)
+		err := c.Create(context.TODO(), u, clientCreateOption)
+		if err != nil {
+			klog.V(2).Infof("Error while creating %s", err)
+		}
+		return err
 	})
 	if err != nil {
-		klog.Error(err, "Unable to create: ",
+		klog.V(2).Info("Unable to create:", "Error", err,
 			" Kind: ", u.GetKind(),
 			" Name: ", u.GetName(),
 			" Namespace: ", u.GetNamespace())
@@ -445,7 +563,7 @@ func (a *Applier) Update(
 	u *unstructured.Unstructured,
 ) error {
 
-	klog.V(2).Info("Create: ",
+	klog.V(2).Info("Update: ",
 		" Kind: ", u.GetKind(),
 		" Name: ", u.GetName(),
 		" Namespace: ", u.GetNamespace())
@@ -458,9 +576,23 @@ func (a *Applier) Update(
 	//Check if already exists
 	current := &unstructured.Unstructured{}
 	current.SetGroupVersionKind(u.GroupVersionKind())
-	errGet := a.client.Get(context.TODO(), types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()}, current)
+	errGet := retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
+		if err != nil {
+			klog.V(2).Infof("Retry Get %s", err)
+			return true
+		}
+		return false
+	}, func() error {
+		err := a.client.Get(context.TODO(),
+			types.NamespacedName{Name: u.GetName(), Namespace: u.GetNamespace()},
+			current)
+		if err != nil {
+			klog.V(2).Infof("Error while updating %s", err)
+		}
+		return err
+	})
 	if errGet != nil {
-		klog.Error(errGet, "Error while update: ",
+		klog.V(2).Info("Unable to update:", "Error", err,
 			" Kind: ", u.GetKind(),
 			" Name: ", u.GetName(),
 			" Namespace: ", u.GetNamespace())
@@ -480,13 +612,26 @@ func (a *Applier) Update(
 			}
 			updatedOptions := &client.UpdateOptions{}
 			clientUpdateOption := updatedOptions.ApplyOptions(clientUpdateOptions)
+			c := a.client
+			if a.applierOptions.DryRun {
+				printUnstructure(u)
+				c = client.NewDryRunClient(c)
+			}
 			err = retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
-				return err != nil
+				if err != nil {
+					klog.V(2).Infof("Retry update %s", err)
+					return true
+				}
+				return false
 			}, func() error {
-				return a.client.Update(context.TODO(), future, clientUpdateOption)
+				err := c.Update(context.TODO(), future, clientUpdateOption)
+				if err != nil {
+					klog.V(2).Infof("Error while updating %s", err)
+				}
+				return err
 			})
 			if err != nil {
-				klog.Error(err, "Error while update: ",
+				klog.V(2).Info("Unable to update:", "Error", err,
 					" Kind: ", u.GetKind(),
 					" Name: ", u.GetName(),
 					" Namespace: ", u.GetNamespace())
@@ -498,6 +643,88 @@ func (a *Applier) Update(
 	}
 	return nil
 
+}
+
+//Delete deletes an unstructured object.
+func (a *Applier) Delete(
+	u *unstructured.Unstructured,
+) error {
+
+	klog.V(2).Info("Delete: ",
+		" Kind: ", u.GetKind(),
+		" Name: ", u.GetName(),
+		" Namespace: ", u.GetNamespace())
+	var clientDeleteOptions []client.DeleteOption
+	if a.applierOptions != nil {
+		clientDeleteOptions = a.applierOptions.ClientDeleteOption
+	}
+	deleteOptions := &client.DeleteOptions{}
+	clientDeleteOption := deleteOptions.ApplyOptions(clientDeleteOptions)
+	c := a.client
+	if a.applierOptions.DryRun {
+		printUnstructure(u)
+		c = client.NewDryRunClient(c)
+	}
+	err := retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
+		if err != nil && !errors.IsNotFound(err) {
+			klog.V(2).Infof("Retry delete %s", err)
+			return true
+		}
+		return false
+	}, func() error {
+		err := c.Delete(context.TODO(), u, clientDeleteOption)
+		if err != nil {
+			klog.V(2).Infof("Error while deleting %s", err)
+		}
+		return err
+	})
+	if err != nil && !errors.IsNotFound(err) {
+		klog.V(2).Info("Unable to delete:", "Error", err,
+			" Kind: ", u.GetKind(),
+			" Name: ", u.GetName(),
+			" Namespace: ", u.GetNamespace())
+		return err
+	}
+	if a.applierOptions.ForceDelete &&
+		u.GetKind() != reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name() &&
+		u.GetKind() != reflect.TypeOf(corev1.Namespace{}).Name() {
+		u.SetFinalizers([]string{})
+		var clientUpdateOptions []client.UpdateOption
+		if a.applierOptions != nil {
+			clientUpdateOptions = a.applierOptions.ClientUpdateOption
+		}
+		updatedOptions := &client.UpdateOptions{}
+		clientUpdateOption := updatedOptions.ApplyOptions(clientUpdateOptions)
+		err := retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
+			if err != nil && !errors.IsNotFound(err) {
+				klog.V(2).Infof("Retry removing finalizers %s", err)
+				return true
+			}
+			return false
+		}, func() error {
+			err := c.Update(context.TODO(), u, clientUpdateOption)
+			if err != nil {
+				klog.V(2).Infof("Error while removing finalizers %s", err)
+			}
+			return err
+		})
+		if err != nil && !errors.IsNotFound(err) {
+			klog.V(2).Info("Unable to remove finalizers:", "Error", err,
+				" Kind: ", u.GetKind(),
+				" Name: ", u.GetName(),
+				" Namespace: ", u.GetNamespace())
+			return err
+		}
+	}
+	return nil
+}
+
+func printUnstructure(u *unstructured.Unstructured) {
+	b, err := templateprocessor.ToYAMLUnstructured(u)
+	if err != nil {
+		fmt.Printf("Unable to unmarshal %v\n Error: %s\n", u, err)
+	}
+	fmt.Printf("%s\n%s", string(b), templateprocessor.KubernetesYamlsDelimiter)
 }
 
 func (a *Applier) setControllerReference(
