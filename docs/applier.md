@@ -21,7 +21,6 @@ apply [-d <templates_directory>] [-values <values_file_path>] [-k <kubeconfig_fi
 - `-dry-run` Display only (do not apply) the yamls that will be applied
 - `-v` verbosity level.
 - `-h` display the Usage.
-- `-force` Remove all finalizer after the deletion of the resource except for namespaces and CRD.
 
 ## Implementing a reader
 
