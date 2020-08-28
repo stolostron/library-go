@@ -20,6 +20,7 @@ apply [-d <templates_directory>] [-values <values_file_path>] [-k <kubeconfig_fi
 - `-k` The path to the kubeconfig, if not set the KUBECONFIG env var will be use, if not set the default home user localtion is used.
 - `-dry-run` Display only (do not apply) the yamls that will be applied
 - `-v` verbosity level.
+- `-h` display the Usage.
 
 ## Implementing a reader
 

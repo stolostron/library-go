@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -685,7 +686,8 @@ func (a *Applier) Delete(
 		return err
 	}
 	if a.applierOptions.ForceDelete &&
-		u.GetKind() != reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name() {
+		u.GetKind() != reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name() &&
+		u.GetKind() != reflect.TypeOf(corev1.Namespace{}).Name() {
 		u.SetFinalizers([]string{})
 		var clientUpdateOptions []client.UpdateOption
 		if a.applierOptions != nil {
