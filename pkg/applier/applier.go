@@ -42,12 +42,18 @@ type Applier struct {
 
 //Options defines for the available options for the applier
 type Options struct {
+	//The option used when a resource is created
 	ClientCreateOption []client.CreateOption
+	//The option used when a resource is updated
 	ClientUpdateOption []client.UpdateOption
+	//The option used when a resource is deleted
 	ClientDeleteOption []client.DeleteOption
-	Backoff            *wait.Backoff
-	DryRun             bool
-	ForceDelete        bool
+	//Defines the parameters for retrying a transaction if it fails.
+	Backoff *wait.Backoff
+	//If true, the client will be set for dryrun
+	DryRun bool
+	//If true, the finalizers will be removed after deletion.
+	ForceDelete bool
 }
 
 //NewApplier creates a new client to access kubernetes through the applier.
