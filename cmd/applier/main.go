@@ -35,7 +35,7 @@ func main() {
 	flag.BoolVar(&dryRun, "dry-run", false, "if set only the rendered yaml will be shown, default false")
 	flag.StringVar(&prefix, "p", "", "The prefix to add to each value names, for example 'Values'")
 	flag.BoolVar(&delete, "delete", false, "if set only the resource defined in the yamls will be deleted, default false")
-	flag.IntVar(&timeout, "t", 5, "Timeout in second to apply one resource, default 1 sec")
+	flag.IntVar(&timeout, "t", 5, "Timeout in second to apply one resource, default 5 sec")
 	flag.BoolVar(&force, "force", false, "If set, the finalizers will be removed before delete")
 	flag.Parse()
 
