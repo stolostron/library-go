@@ -1,6 +1,6 @@
 # Introduction to template
 
-The file [templateprocessor](../pkg/templateprocessor) contains an number of methods allowing you to render template yamls. 
+The file [templateprocessor](../pkg/templateprocessor) contains an number of methods allowing you to render template yaml files. 
 The template supports the [text/template](https://golang.org/pkg/text/template/) framework and so you can use statements defined in that framework.
 As the [Mastermind/sprig](https://github.com/Masterminds/sprig) is also loaded, you can use any functions defined by that framework.
 By enriching the [templatefunction.go](../pkg/templateprocessor/templatefunction.go), you can also develop your own functions. Check, for example, the function `toYaml` in the [templatefunction.go](../pkg/templateprocessor/templatefunction.go).
@@ -11,14 +11,14 @@ The resources are sorted in order to be applied in a kubernetes environment usin
 
 ## command-line
 
-A command-line is available to apply yamls in a given directory. To generate it run `make build`, the `apply` executable will be in the `bin` directory.
+A command-line is available to apply yaml files in a given directory. To generate it run `make build`, the `apply` executable will be in the `bin` directory.
 ```
 apply [-d <templates_directory>] [-values <values_file_path>] [-k <kubeconfig_file_path>] [-dry-run] [-v n]
 ```
 - `-d` The templates directory, default ".".
 - `-values` The values.yaml file path
 - `-k` The path to the kubeconfig, if not set the KUBECONFIG env var will be use, if not set the default home user localtion is used.
-- `-dry-run` Display only (do not apply) the yamls that will be applied
+- `-dry-run` Display only (do not apply) the yaml files that will be applied
 - `-v` verbosity level.
 - `-h` display the Usage.
 - `-force` Remove all finalizer after the deletion of the resource except for namespaces and CRD.
@@ -31,7 +31,7 @@ A bindata implementation can be found [bindata](../examples/templateprocessor/bi
 
 ## Methods
 
-In [applier](../pkg/templateprocessor) there are methods which process the yaml templates, return them as a list of yamls or list of `unstructured.Unstructured`.
+In [applier](../pkg/templateprocessor) there are methods which process the yaml templates, return them as a list of yaml files or list of `unstructured.Unstructured`.
 There are also methods that sort these processed yaml templates depending of their `kind`. The order is defined in `kindOrder` variable which can be override.
 A method `CreateOrUpdateInPath` creates or update all resources localted in a specific path.
 
@@ -93,9 +93,9 @@ The result contains a `[]byte` representing the templated yaml with the provided
 	}, values)
 
 ```
-results contains a non-sorted `[][]bytes` each element is the templated yamls using the provided values.
+results contains a non-sorted `[][]bytes` each element is the templated yaml files using the provided values.
 
-### Example 3: Retreive a list of yamls
+### Example 3: Retreive a list of yaml files
 
 ```
 	tp, err := NewTemplateProcessor(NewTestReader(assets), nil, nil)
@@ -107,9 +107,9 @@ results contains a non-sorted `[][]bytes` each element is the templated yamls us
 		return nil, nil, err
 	}
 ```
-The crds contains a `[][]byte` (non-sorted) of all yamls found in `klusterlet/crds` directory and sub-directory using the provided config.
+The crds contains a `[][]byte` (non-sorted) of all yaml files found in `klusterlet/crds` directory and sub-directory using the provided config.
 
-### Example 4: Generate a sorted list of yamls based using all templates in a given directory
+### Example 4: Generate a sorted list of yaml files based using all templates in a given directory
 
 ```
 	values := struct {
@@ -141,7 +141,7 @@ The crds contains a `[][]byte` (non-sorted) of all yamls found in `klusterlet/cr
 		return nil, nil, err
 	}
 ```
-The results contains a `[][]byte`. The yamls are sorted based on the Kind, Namespace and Name of the resource. All yamls come from the `resources/klusterlet` (non-recursive) using the provided values.
+The results contains a `[][]byte`. The yaml files are sorted based on the Kind, Namespace and Name of the resource. All yaml files come from the `resources/klusterlet` (non-recursive) using the provided values.
 
 ### Example 5: Create or update all resources defined in a directory
 
