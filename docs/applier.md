@@ -3,7 +3,7 @@
 The file [templateprocessor](../pkg/templateprocessor) contains an number of methods allowing you to render template yamls. 
 The template support the [text/template](https://golang.org/pkg/text/template/) framework and so you can use statements defined in that framework.
 As the [Mastermind/sprig](https://github.com/Masterminds/sprig) is also loaded, you can use any functions defined by that framework.
-By enriching the [templatefunction.go](../pkg/templateprocessor/templatefunction.go), you can also develop your own functions. Check for example the function `toYaml` in the [templatefunction.go](../pkg/templateprocessor/templatefunction.go).
+By enriching the [templatefunction.go](../pkg/templateprocessor/templatefunction.go), you can also develop your own functions. Check, for example, the function `toYaml` in the [templatefunction.go](../pkg/templateprocessor/templatefunction.go).
 A `_helpers.tpl` file can also be added to define your own functions.
 The resources are read by an Go object satisfying the [TemplateReader](../pkg/templateprocessor/templateProcessor.go) reader.  
 The reader is embedded in a applier.TemplateProcessor object
