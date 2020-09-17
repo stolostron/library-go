@@ -54,7 +54,10 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 			Namespace: values.ManagedClusterNamespace,
 		},
 		Secrets: []corev1.ObjectReference{
-			{Name: "objectname"},
+			{Name: "myothersecret"},
+		},
+		ImagePullSecrets: []corev1.LocalObjectReference{
+			{Name: "mypullsecret"},
 		},
 	}
 	clientUpdate := fake.NewFakeClient(sa)
@@ -64,14 +67,14 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
-	clientUpdateNoMerger := fake.NewFakeClient(sa)
+	clientUpdateNoMerger := fake.NewFakeClient(saSecrets)
 
-	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, testscheme, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
-	clientUpdateMerged := fake.NewFakeClient(saSecrets)
+	clientUpdateMerged := fake.NewFakeClient(sa)
 
 	aUpdateMerged, err := NewApplier(reader, nil, clientUpdateMerged, nil, nil, DefaultKubernetesMerger, nil)
 	if err != nil {
@@ -101,7 +104,8 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "success update",
+			//because secrets are merge using strategy
+			name:   "success update merger",
 			fields: *aUpdate,
 			args: args{
 				path:      "test",
@@ -120,7 +124,7 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 				recursive: false,
 				values:    values,
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:   "success update merged",
@@ -144,14 +148,6 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 				t.Errorf("ApplierClient.CreateOrUpdateInPath() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err == nil {
-				sa := &corev1.ServiceAccount{}
-				err := client.Get(context.TODO(), types.NamespacedName{
-					Name:      values.BootstrapServiceAccountName,
-					Namespace: values.ManagedClusterNamespace,
-				}, sa)
-				if err != nil {
-					t.Error(err)
-				}
 				r := &rbacv1.ClusterRole{}
 				err = client.Get(context.TODO(), types.NamespacedName{
 					Name: values.ManagedClusterName,
@@ -170,13 +166,41 @@ func TestApplierClient_CreateOrUpdateInPath(t *testing.T) {
 					t.Errorf("Expecting %s got %s", values.ManagedClusterName, rb.RoleRef.Name)
 				}
 				switch tt.name {
-				case "success update":
-					if len(sa.Secrets) == 0 {
-						t.Error("Not merged as no secrets found")
+				case "success update merger":
+					sa := &corev1.ServiceAccount{}
+					err := clientUpdate.Get(context.TODO(), types.NamespacedName{
+						Name:      values.BootstrapServiceAccountName,
+						Namespace: values.ManagedClusterNamespace,
+					}, sa)
+					if err != nil {
+						t.Error(err)
+					}
+					if len(sa.Secrets) != 1 {
+						t.Error("Merged as no secrets found")
+					}
+				case "success update no merger":
+					sa := &corev1.ServiceAccount{}
+					err := clientUpdateNoMerger.Get(context.TODO(), types.NamespacedName{
+						Name:      values.BootstrapServiceAccountName,
+						Namespace: values.ManagedClusterNamespace,
+					}, sa)
+					if err != nil {
+						t.Error(err)
+					}
+					if len(sa.Secrets) != 2 {
+						t.Errorf("Merged expecting 2 secrets got %d", len(sa.Secrets))
 					}
 				case "success update merged":
-					if sa.Secrets[0].Name != "mysecret" {
-						t.Errorf("Not merged secrets=%#v", sa.Secrets[0])
+					sa := &corev1.ServiceAccount{}
+					err := clientUpdateMerged.Get(context.TODO(), types.NamespacedName{
+						Name:      values.BootstrapServiceAccountName,
+						Namespace: values.ManagedClusterNamespace,
+					}, sa)
+					if err != nil {
+						t.Error(err)
+					}
+					if len(sa.ImagePullSecrets) != 0 && sa.ImagePullSecrets[0].Name != "mypullsecret" {
+						t.Errorf("Not merged imagePullSecret=%#v", sa.ImagePullSecrets[0])
 					}
 				}
 			}
@@ -513,7 +537,7 @@ func TestApplier_UpdateInPath(t *testing.T) {
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, testscheme, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -559,7 +583,7 @@ func TestApplier_UpdateInPath(t *testing.T) {
 				recursive: false,
 				values:    values,
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:   "success update merged",
@@ -708,7 +732,7 @@ func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 
 	clientUpdateNoMerger := fake.NewFakeClient(sa)
 
-	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, testscheme, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -752,7 +776,7 @@ func TestApplier_CreateOrUpdateAssets(t *testing.T) {
 				values:    values,
 				delimiter: "---",
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -805,9 +829,22 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
 
-	clientUpdateNoMerger := fake.NewFakeClient(sa)
+	saToBePatch := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      values.BootstrapServiceAccountName,
+			Namespace: values.ManagedClusterNamespace,
+		},
+		Secrets: []corev1.ObjectReference{
+			{Name: "existingSecret"},
+		},
+	}
+	clientUpdateNoMerger := fake.NewFakeClient(saToBePatch)
 
-	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, nil, nil, nil)
+	aUpdateNoMerger, err := NewApplier(reader, nil, clientUpdateNoMerger, nil, testscheme, nil, nil)
 	if err != nil {
 		t.Errorf("Unable to create applier %s", err.Error())
 	}
@@ -847,7 +884,7 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 				assets: []string{"0", "1", "2"},
 				values: values,
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -860,9 +897,67 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 				merger:            tt.fields.merger,
 				applierOptions:    tt.fields.applierOptions,
 			}
-			if err := a.CreateOrUpdateResources(tt.args.assets, tt.args.values); (err != nil) != tt.wantErr {
+			err := a.CreateOrUpdateResources(tt.args.assets, tt.args.values)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("Applier.CreateOrUpdateResources() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err == nil {
+				s := &corev1.ServiceAccount{}
+				switch tt.name {
+				case "success update no merger":
+					err = clientUpdateNoMerger.Get(context.TODO(),
+						types.NamespacedName{
+							Name:      values.BootstrapServiceAccountName,
+							Namespace: values.ManagedClusterNamespace,
+						},
+						s)
+					if err != nil {
+						t.Error(err)
+					}
+					if len(s.Secrets) < 2 {
+						t.Error("Expecting 2 secrets")
+					}
+				}
 			}
 		})
 	}
 }
+
+// func Test_Sample(t *testing.T) {
+// 	m3, err := merget(t, m1, m2, "")
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// 	t.Errorf("%v", m3)
+// }
+
+// func merget(t *testing.T, m1, m2 interface{}, key string) (m3 map[string]interface{}, err error) {
+// 	m3 = make(map[string]interface{})
+// 	if reflect.TypeOf(m1).Kind() != reflect.TypeOf(m2).Kind() {
+// 		return nil, fmt.Errorf("Not comptible")
+// 	}
+// 	switch reflect.TypeOf(m2).Kind() {
+// 	case reflect.Map:
+// 		for k, m2v := range m2.(map[string]interface{}) {
+// 			if m1v, ok := m1.(map[string]interface{})[k]; ok {
+// 				m3[k], err = merge(t, m1v, m2v, k)
+// 				if err != nil {
+// 					break
+// 				}
+// 			}
+// 		}
+// 	case reflect.Array, reflect.Slice:
+// 		// m3[k] = make([]interface{},0)
+// 		// for iv, sv := range m2.([]interface{}) {
+// 		// 	m3[k] = append(m3[k], merge(t, m1, sv))
+// 		// }
+// 	default:
+// 		t.Logf("%s: %v", reflect.TypeOf(m2).Kind(), m2)
+// 		m3[key] = m2
+// 		return m3, nil
+// 	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return m3, nil
+// }

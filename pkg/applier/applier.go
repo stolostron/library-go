@@ -2,10 +2,12 @@ package applier
 
 import (
 	"context"
+	"encoding/json"
 	goerr "errors"
 	"fmt"
 	"reflect"
 
+	libscheme "github.com/open-cluster-management/library-go/pkg/scheme"
 	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
@@ -13,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
@@ -23,10 +26,6 @@ import (
 
 //Applier structure to access kubernetes through the applier
 type Applier struct {
-	//Templateprocessor reader
-	templateReader templateprocessor.TemplateReader
-	//TemplateProcessor options
-	templateProcessorOptions *templateprocessor.Options
 	//TemplateProcessor
 	templateProcessor *templateprocessor.TemplateProcessor
 	//The client-go kubernetes client
@@ -35,7 +34,9 @@ type Applier struct {
 	owner metav1.Object
 	//The scheme
 	scheme *runtime.Scheme
-	//A merger defining how two objects must be merged
+	//A merger defining how two objects must be merged,
+	//if a merger is not provider, the applier will use client.Patch
+	//insted of client.Update to change the object.
 	merger Merger
 	//applier options for the applier
 	applierOptions *Options
@@ -44,17 +45,21 @@ type Applier struct {
 //Options defines for the available options for the applier
 type Options struct {
 	//The option used when a resource is created
-	ClientCreateOption []client.CreateOption
+	ClientCreateOptions client.CreateOptions
 	//The option used when a resource is updated
-	ClientUpdateOption []client.UpdateOption
+	ClientUpdateOptions client.UpdateOptions
+	//The option used when a resource is patch
+	ClientPatchOptions client.PatchOptions
 	//The option used when a resource is deleted
-	ClientDeleteOption []client.DeleteOption
+	ClientDeleteOptions client.DeleteOptions
 	//Defines the parameters for retrying a transaction if it fails.
 	Backoff *wait.Backoff
 	//If true, the client will be set for dryrun
 	DryRun bool
 	//If true, the finalizers will be removed after deletion.
 	ForceDelete bool
+	//Define the patchType to use, default types.StrategicMergePatchType
+	PatchType types.PatchType
 }
 
 //NewApplier creates a new client to access kubernetes through the applier.
@@ -128,10 +133,6 @@ var DefaultKubernetesMerger Merger = func(current,
 			if !reflect.DeepEqual(newValue, current.Object[r]) {
 				update = true
 				current.Object[r] = newValue
-			}
-		} else {
-			if _, ok := current.Object[r]; ok {
-				current.Object[r] = nil
 			}
 		}
 	}
@@ -521,12 +522,6 @@ func (a *Applier) Create(
 	if err != nil {
 		return err
 	}
-	var clientCreateOptions []client.CreateOption
-	if a.applierOptions != nil {
-		clientCreateOptions = a.applierOptions.ClientCreateOption
-	}
-	createOptions := &client.CreateOptions{}
-	clientCreateOption := createOptions.ApplyOptions(clientCreateOptions)
 	c := a.client
 	if a.applierOptions.DryRun {
 		printUnstructure(u)
@@ -539,7 +534,7 @@ func (a *Applier) Create(
 		}
 		return false
 	}, func() error {
-		err := c.Create(context.TODO(), u, clientCreateOption)
+		err := c.Create(context.TODO(), u, &a.applierOptions.ClientCreateOptions)
 		if err != nil {
 			klog.V(2).Infof("Error while creating %s", err)
 		}
@@ -562,11 +557,6 @@ func (a *Applier) Create(
 func (a *Applier) Update(
 	u *unstructured.Unstructured,
 ) error {
-
-	klog.V(2).Info("Update: ",
-		" Kind: ", u.GetKind(),
-		" Name: ", u.GetName(),
-		" Namespace: ", u.GetNamespace())
 	//Set controller ref
 	err := a.setControllerReference(u)
 	if err != nil {
@@ -599,50 +589,163 @@ func (a *Applier) Update(
 		return errGet
 	} else {
 		if a.merger == nil {
-			return fmt.Errorf("Unable to update %s/%s of Kind %s the merger is nil",
-				current.GetKind(),
-				current.GetNamespace(),
-				current.GetName())
-		}
-		future, update := a.merger(current, u)
-		if update {
-			var clientUpdateOptions []client.UpdateOption
-			if a.applierOptions != nil {
-				clientUpdateOptions = a.applierOptions.ClientUpdateOption
-			}
-			updatedOptions := &client.UpdateOptions{}
-			clientUpdateOption := updatedOptions.ApplyOptions(clientUpdateOptions)
-			c := a.client
-			if a.applierOptions.DryRun {
-				printUnstructure(u)
-				c = client.NewDryRunClient(c)
-			}
-			err = retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
-				if err != nil {
-					klog.V(2).Infof("Retry update %s", err)
-					return true
-				}
-				return false
-			}, func() error {
-				err := c.Update(context.TODO(), future, clientUpdateOption)
-				if err != nil {
-					klog.V(2).Infof("Error while updating %s", err)
-				}
-				return err
-			})
-			if err != nil {
-				klog.V(2).Info("Unable to update:", "Error", err,
-					" Kind: ", u.GetKind(),
-					" Name: ", u.GetName(),
-					" Namespace: ", u.GetNamespace())
-				return err
-			}
+			return a.patch(current, u)
 		} else {
-			klog.V(2).Info("No update needed")
+			return a.update(current, u)
 		}
 	}
-	return nil
+}
 
+func (a *Applier) update(
+	current *unstructured.Unstructured,
+	u *unstructured.Unstructured,
+) error {
+	klog.V(2).Info("Update: ",
+		" Kind: ", u.GetKind(),
+		" Name: ", u.GetName(),
+		" Namespace: ", u.GetNamespace())
+	future, update := a.merger(current, u)
+	if update {
+		c := a.client
+		if a.applierOptions.DryRun {
+			printUnstructure(u)
+			c = client.NewDryRunClient(c)
+		}
+		err := retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
+			if err != nil {
+				klog.V(2).Infof("Retry update %s", err)
+				return true
+			}
+			return false
+		}, func() error {
+			err := c.Update(context.TODO(), future, &a.applierOptions.ClientUpdateOptions)
+			if err != nil {
+				klog.V(2).Infof("Error while updating %s", err)
+			}
+			return err
+		})
+		if err != nil {
+			klog.V(2).Info("Unable to update:", "Error", err,
+				" Kind: ", u.GetKind(),
+				" Name: ", u.GetName(),
+				" Namespace: ", u.GetNamespace())
+			return err
+		}
+	} else {
+		klog.V(2).Info("No update needed")
+	}
+	return nil
+}
+
+func (a *Applier) patch(
+	current *unstructured.Unstructured,
+	u *unstructured.Unstructured,
+) error {
+	klog.V(2).Info("Patch: ",
+		" Kind: ", u.GetKind(),
+		" Name: ", u.GetName(),
+		" Namespace: ", u.GetNamespace())
+	// if u.GetKind() == reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name() {
+	// 	return nil
+	// }
+	patchType := types.StrategicMergePatchType
+	if a.applierOptions.PatchType != "" {
+		patchType = a.applierOptions.PatchType
+	}
+
+	c := a.client
+	if a.applierOptions.DryRun {
+		printUnstructure(u)
+		c = client.NewDryRunClient(c)
+	}
+
+	currentGroupVersionKind := current.GroupVersionKind()
+	uGroupVersionKind := u.GroupVersionKind()
+	if !reflect.DeepEqual(currentGroupVersionKind, uGroupVersionKind) {
+		return fmt.Errorf("Incompatible GroupVersionKind: %s, %s", currentGroupVersionKind, uGroupVersionKind)
+	}
+
+	cObj, err := a.scheme.New(current.GroupVersionKind())
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(current.Object, cObj)
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	uObj, err := a.scheme.New(u.GroupVersionKind())
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, uObj)
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	//For CRD v1beta1 merge must be applied
+	crdv1beta1 := schema.GroupVersionKind{
+		Group:   apiextensions.SchemeGroupVersion.Group,
+		Kind:    reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name(),
+		Version: "v1beta1",
+	}
+
+	_, _, errNativeConvert := libscheme.KubernetesNativeScheme().ObjectKinds(cObj)
+
+	if reflect.DeepEqual(currentGroupVersionKind, crdv1beta1) || errNativeConvert == nil {
+		patchType = types.MergePatchType
+	}
+
+	klog.V(2).Info("Patch: ",
+		" Kind: ", u.GetKind(),
+		" Name: ", u.GetName(),
+		" Namespace: ", u.GetNamespace(),
+		" PatchType: ", patchType)
+
+	var p []byte
+	if patchType == types.JSONPatchType {
+		var arrayObj [1]runtime.Object
+		arrayObj[0] = uObj
+		p, err = json.Marshal(arrayObj)
+	} else {
+		p, err = json.Marshal(uObj)
+	}
+
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	klog.V(4).Infof("Patch:\n %v", string(p))
+
+	patch := client.RawPatch(patchType, p)
+
+	err = retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
+		if err != nil && !errors.IsNotFound(err) {
+			klog.V(2).Infof("Retry Patch %s", err)
+			return true
+		}
+		return false
+	}, func() error {
+		err := c.Patch(context.TODO(), cObj, patch, &a.applierOptions.ClientPatchOptions)
+		if err != nil {
+			klog.V(2).Infof("Error while patching %s", err)
+		}
+		return err
+	})
+	if err != nil && !errors.IsNotFound(err) {
+		klog.V(2).Info("Unable to patch:", "Error", err,
+			" Kind: ", u.GetKind(),
+			" Name: ", u.GetName(),
+			" Namespace: ", u.GetNamespace(),
+			" PatchType: ", patchType)
+		return err
+	}
+	return nil
 }
 
 //Delete deletes an unstructured object.
@@ -654,12 +757,6 @@ func (a *Applier) Delete(
 		" Kind: ", u.GetKind(),
 		" Name: ", u.GetName(),
 		" Namespace: ", u.GetNamespace())
-	var clientDeleteOptions []client.DeleteOption
-	if a.applierOptions != nil {
-		clientDeleteOptions = a.applierOptions.ClientDeleteOption
-	}
-	deleteOptions := &client.DeleteOptions{}
-	clientDeleteOption := deleteOptions.ApplyOptions(clientDeleteOptions)
 	c := a.client
 	if a.applierOptions.DryRun {
 		printUnstructure(u)
@@ -672,7 +769,7 @@ func (a *Applier) Delete(
 		}
 		return false
 	}, func() error {
-		err := c.Delete(context.TODO(), u, clientDeleteOption)
+		err := c.Delete(context.TODO(), u, &a.applierOptions.ClientDeleteOptions)
 		if err != nil {
 			klog.V(2).Infof("Error while deleting %s", err)
 		}
@@ -689,12 +786,6 @@ func (a *Applier) Delete(
 		u.GetKind() != reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name() &&
 		u.GetKind() != reflect.TypeOf(corev1.Namespace{}).Name() {
 		u.SetFinalizers([]string{})
-		var clientUpdateOptions []client.UpdateOption
-		if a.applierOptions != nil {
-			clientUpdateOptions = a.applierOptions.ClientUpdateOption
-		}
-		updatedOptions := &client.UpdateOptions{}
-		clientUpdateOption := updatedOptions.ApplyOptions(clientUpdateOptions)
 		err := retry.OnError(*a.applierOptions.Backoff, func(err error) bool {
 			if err != nil && !errors.IsNotFound(err) {
 				klog.V(2).Infof("Retry removing finalizers %s", err)
@@ -702,7 +793,7 @@ func (a *Applier) Delete(
 			}
 			return false
 		}, func() error {
-			err := c.Update(context.TODO(), u, clientUpdateOption)
+			err := c.Update(context.TODO(), u, &a.applierOptions.ClientUpdateOptions)
 			if err != nil {
 				klog.V(2).Infof("Error while removing finalizers %s", err)
 			}

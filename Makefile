@@ -17,7 +17,7 @@ deps:
 ## Runs go unit tests
 test:
 	@if ! which kubebuilder > /dev/null; then \
-	  echo "Please install kubebuilder, run 'make deps'"; \
+	  echo "Please install kubebuilder, run 'make deps' and 'export PATH=$PATH:/usr/local/kubebuilder/bin'"; \
 	else \
 		$(UNIT_TEST_COMMAND); \
 	fi
