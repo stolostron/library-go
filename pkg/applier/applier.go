@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"reflect"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+
 	libscheme "github.com/open-cluster-management/library-go/pkg/scheme"
 	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	corev1 "k8s.io/api/core/v1"
@@ -15,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
@@ -687,17 +689,24 @@ func (a *Applier) patch(
 		return err
 	}
 
-	//For CRD v1beta1 merge must be applied
-	crdv1beta1 := schema.GroupVersionKind{
-		Group:   apiextensions.SchemeGroupVersion.Group,
-		Kind:    reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name(),
-		Version: "v1beta1",
-	}
+	// //For CRD v1beta1 merge must be applied
+	// crdv1beta1 := schema.GroupVersionKind{
+	// 	Group:   apiextensions.SchemeGroupVersion.Group,
+	// 	Kind:    reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name(),
+	// 	Version: "v1beta1",
+	// }
 
-	_, unversionned, errNativeConvert := libscheme.KubernetesNativeScheme().ObjectKinds(cObj)
+	versionedObject := libscheme.ConvertWithMapper(cObj, nil)
+	// _, errConvert := libscheme.ConvertWithMapper(cObj, nil)
+	// registered := s.IsGroupRegistered(cObj.GetObjectKind().GroupVersionKind().Group)
 
-	klog.Errorf("errNativeConvert %s", errNativeConvert)
-	if reflect.DeepEqual(currentGroupVersionKind, crdv1beta1) || (!unversionned && errNativeConvert != nil) {
+	// On newer K8s versions, CRDs aren't unstructured but has this dedicated type
+	_, isCRDv1Beta1 := versionedObject.(*apiextensionsv1beta1.CustomResourceDefinition)
+	_, isCRDv1 := versionedObject.(*apiextensionsv1.CustomResourceDefinition)
+
+	_, isUnstructured := versionedObject.(runtime.Unstructured)
+
+	if isUnstructured || isCRDv1 || isCRDv1Beta1 {
 		patchType = types.MergePatchType
 	}
 

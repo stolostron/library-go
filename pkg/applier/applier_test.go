@@ -805,29 +805,29 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 
 	reader := templateprocessor.NewYamlStringReader(assetsYaml, templateprocessor.KubernetesYamlsDelimiter)
 
-	client := fake.NewFakeClient([]runtime.Object{}...)
+	// client := fake.NewFakeClient([]runtime.Object{}...)
 
-	a, err := NewApplier(reader, nil, client, nil, nil, nil, nil)
-	if err != nil {
-		t.Errorf("Unable to create applier %s", err.Error())
-	}
+	// a, err := NewApplier(reader, nil, client, nil, nil, nil, nil)
+	// if err != nil {
+	// 	t.Errorf("Unable to create applier %s", err.Error())
+	// }
 
-	sa := &corev1.ServiceAccount{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ServiceAccount",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      values.BootstrapServiceAccountName,
-			Namespace: values.ManagedClusterNamespace,
-		},
-	}
-	clientUpdate := fake.NewFakeClient(sa)
+	// sa := &corev1.ServiceAccount{
+	// 	TypeMeta: metav1.TypeMeta{
+	// 		APIVersion: corev1.SchemeGroupVersion.String(),
+	// 		Kind:       "ServiceAccount",
+	// 	},
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name:      values.BootstrapServiceAccountName,
+	// 		Namespace: values.ManagedClusterNamespace,
+	// 	},
+	// }
+	// clientUpdate := fake.NewFakeClient(sa)
 
-	aUpdate, err := NewApplier(reader, nil, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
-	if err != nil {
-		t.Errorf("Unable to create applier %s", err.Error())
-	}
+	// aUpdate, err := NewApplier(reader, nil, clientUpdate, nil, nil, DefaultKubernetesMerger, nil)
+	// if err != nil {
+	// 	t.Errorf("Unable to create applier %s", err.Error())
+	// }
 
 	saToBePatch := &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
@@ -859,24 +859,24 @@ func TestApplier_CreateOrUpdateResources(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{
-			name:   "success",
-			fields: *a,
-			args: args{
-				assets: []string{"0", "1", "2"},
-				values: values,
-			},
-			wantErr: false,
-		},
-		{
-			name:   "success update",
-			fields: *aUpdate,
-			args: args{
-				assets: []string{"0", "1", "2"},
-				values: values,
-			},
-			wantErr: false,
-		},
+		// {
+		// 	name:   "success",
+		// 	fields: *a,
+		// 	args: args{
+		// 		assets: []string{"0", "1", "2"},
+		// 		values: values,
+		// 	},
+		// 	wantErr: false,
+		// },
+		// {
+		// 	name:   "success update",
+		// 	fields: *aUpdate,
+		// 	args: args{
+		// 		assets: []string{"0", "1", "2"},
+		// 		values: values,
+		// 	},
+		// 	wantErr: false,
+		// },
 		{
 			name:   "success update no merger",
 			fields: *aUpdateNoMerger,
