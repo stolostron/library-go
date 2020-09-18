@@ -667,23 +667,23 @@ func (a *Applier) patch(
 
 	cObj, err := a.scheme.New(current.GroupVersionKind())
 	if err != nil {
-		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
+		klog.Errorf("APIVersion/Kind: %s/%s, Error: %s", current.GetAPIVersion(), current.GetKind(), err)
 		return err
 	}
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(current.Object, cObj)
 	if err != nil {
-		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
+		klog.Errorf("APIVersion/Kind: %s/%s, Error: %s", current.GetAPIVersion(), current.GetKind(), err)
 		return err
 	}
 
 	uObj, err := a.scheme.New(u.GroupVersionKind())
 	if err != nil {
-		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
+		klog.Errorf("APIVersion/Kind: %s/%s, Error: %s", current.GetAPIVersion(), current.GetKind(), err)
 		return err
 	}
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, uObj)
 	if err != nil {
-		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
+		klog.Errorf("APIVersion/Kind: %s/%s, Error: %s", current.GetAPIVersion(), current.GetKind(), err)
 		return err
 	}
 
@@ -694,9 +694,10 @@ func (a *Applier) patch(
 		Version: "v1beta1",
 	}
 
-	_, _, errNativeConvert := libscheme.KubernetesNativeScheme().ObjectKinds(cObj)
+	_, unversionned, errNativeConvert := libscheme.KubernetesNativeScheme().ObjectKinds(cObj)
 
-	if reflect.DeepEqual(currentGroupVersionKind, crdv1beta1) || errNativeConvert == nil {
+	klog.Errorf("errNativeConvert %s", errNativeConvert)
+	if reflect.DeepEqual(currentGroupVersionKind, crdv1beta1) || (!unversionned && errNativeConvert != nil) {
 		patchType = types.MergePatchType
 	}
 
@@ -716,7 +717,7 @@ func (a *Applier) patch(
 	}
 
 	if err != nil {
-		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
+		klog.Errorf("APIVersion/Kind: %s/%s, Error: %s", current.GetAPIVersion(), current.GetKind(), err)
 		return err
 	}
 
