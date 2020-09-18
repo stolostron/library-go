@@ -667,23 +667,23 @@ func (a *Applier) patch(
 
 	cObj, err := a.scheme.New(current.GroupVersionKind())
 	if err != nil {
-		klog.Error(err)
+		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
 		return err
 	}
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(current.Object, cObj)
 	if err != nil {
-		klog.Error(err)
+		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
 		return err
 	}
 
 	uObj, err := a.scheme.New(u.GroupVersionKind())
 	if err != nil {
-		klog.Error(err)
+		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
 		return err
 	}
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, uObj)
 	if err != nil {
-		klog.Error(err)
+		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
 		return err
 	}
 
@@ -716,7 +716,7 @@ func (a *Applier) patch(
 	}
 
 	if err != nil {
-		klog.Error(err)
+		klog.Errorf("Kind: %s, Error: %s", current.GetKind, err)
 		return err
 	}
 
