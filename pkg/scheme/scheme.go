@@ -3,6 +3,7 @@ package scheme
 import (
 	"sync"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -37,6 +38,11 @@ func KubernetesNativeScheme() *runtime.Scheme {
 			return
 		}
 		err = apiextensionsv1.AddToScheme(k8sNativeScheme)
+		if err != nil {
+			klog.Error(err)
+			return
+		}
+		err = corev1.AddToScheme(k8sNativeScheme)
 		if err != nil {
 			klog.Error(err)
 			return
