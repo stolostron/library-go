@@ -7,10 +7,6 @@ import (
 	"fmt"
 	"reflect"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-
-	libscheme "github.com/open-cluster-management/library-go/pkg/scheme"
 	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
@@ -647,9 +643,6 @@ func (a *Applier) patch(
 		" Kind: ", u.GetKind(),
 		" Name: ", u.GetName(),
 		" Namespace: ", u.GetNamespace())
-	// if u.GetKind() == reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name() {
-	// 	return nil
-	// }
 	patchType := types.StrategicMergePatchType
 	if a.applierOptions.PatchType != "" {
 		patchType = a.applierOptions.PatchType
@@ -689,16 +682,7 @@ func (a *Applier) patch(
 		return err
 	}
 
-	// //For CRD v1beta1 merge must be applied
-	// crdv1beta1 := schema.GroupVersionKind{
-	// 	Group:   apiextensions.SchemeGroupVersion.Group,
-	// 	Kind:    reflect.TypeOf(apiextensions.CustomResourceDefinition{}).Name(),
-	// 	Version: "v1beta1",
-	// }
-
 	versionedObject := libscheme.ConvertWithMapper(cObj, nil)
-	// _, errConvert := libscheme.ConvertWithMapper(cObj, nil)
-	// registered := s.IsGroupRegistered(cObj.GetObjectKind().GroupVersionKind().Group)
 
 	// On newer K8s versions, CRDs aren't unstructured but has this dedicated type
 	_, isCRDv1Beta1 := versionedObject.(*apiextensionsv1beta1.CustomResourceDefinition)
