@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"github.com/open-cluster-management/library-go/pkg/applier"
 	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
 	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
-	"gopkg.in/yaml.v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"

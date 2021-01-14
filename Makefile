@@ -16,11 +16,12 @@ deps:
 .PHONY: test
 ## Runs go unit tests
 test:
-	@if ! which kubebuilder > /dev/null; then \
-	  echo "Please install kubebuilder, run 'make deps'"; \
-	else \
+	$(UNIT_TEST_COMMAND)
+	# @if ! which kubebuilder > /dev/null; then \
+	#   echo "Please install kubebuilder, run 'make deps'"; \
+	# else \
 		$(UNIT_TEST_COMMAND); \
-	fi
+	# fi
 
 .PHONY: go/gosec-install
 ## Installs latest release of Gosec
@@ -94,7 +95,7 @@ build:
 
 .PHONY: functional-test
 functional-test:
-	ginkgo -tags functional -v --slowSpecThreshold=30 test/functional -test.coverprofile test/functional/coverage/functional.out -- -v=1
+	ginkgo -tags functional -v --slowSpecThreshold=30 test/functional -- -v=1
 
 .PHONY: functional-test-full
 functional-test-full: 
