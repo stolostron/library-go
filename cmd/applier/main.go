@@ -36,13 +36,16 @@ func main() {
 	var o Option
 	klog.InitFlags(nil)
 	flag.StringVar(&o.inFile, "f", "", "The file to process")
-	flag.StringVar(&o.outFile, "o", "", "Output file. If set nothing will be applied but a file will be generate which you can apply later with 'kubectl <create|apply|delete> -f")
+	flag.StringVar(&o.outFile, "o", "",
+		"Output file. If set nothing will be applied but a file will be generate "+
+			"which you can apply later with 'kubectl <create|apply|delete> -f")
 	flag.StringVar(&o.directory, "d", ".", "The directory containing the templates, default '.'")
 	flag.StringVar(&o.valuesPath, "values", "values.yaml", "The directory containing the templates, default 'values.yaml'")
 	flag.StringVar(&o.kubeconfigPath, "k", "", "The kubeconfig file")
 	flag.BoolVar(&o.dryRun, "dry-run", false, "if set only the rendered yaml will be shown, default false")
 	flag.StringVar(&o.prefix, "p", "", "The prefix to add to each value names, for example 'Values'")
-	flag.BoolVar(&o.delete, "delete", false, "if set only the resource defined in the yamls will be deleted, default false")
+	flag.BoolVar(&o.delete, "delete", false,
+		"if set only the resource defined in the yamls will be deleted, default false")
 	flag.IntVar(&o.timeout, "t", 5, "Timeout in second to apply one resource, default 5 sec")
 	flag.BoolVar(&o.force, "force", false, "If set, the finalizers will be removed before delete")
 	flag.Parse()
@@ -119,7 +122,7 @@ func apply(o Option) error {
 			if err != nil {
 				return err
 			}
-			return ioutil.WriteFile(filepath.Clean(o.outFile), out, 0644)
+			return ioutil.WriteFile(filepath.Clean(o.outFile), out, 0600)
 		} else {
 			templateReader := templateprocessor.NewYamlFileReader(o.directory)
 			templateProcessor, err := templateprocessor.NewTemplateProcessor(templateReader, &templateprocessor.Options{})
@@ -130,7 +133,7 @@ func apply(o Option) error {
 			if err != nil {
 				return err
 			}
-			return ioutil.WriteFile(filepath.Clean(o.outFile), []byte(templateprocessor.ConvertArrayOfBytesToString(outV)), 0644)
+			return ioutil.WriteFile(filepath.Clean(o.outFile), []byte(templateprocessor.ConvertArrayOfBytesToString(outV)), 0600)
 		}
 	}
 	var templateReader templateprocessor.TemplateReader
