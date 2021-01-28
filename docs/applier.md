@@ -13,14 +13,17 @@ The resources are sorted in order to be applied in a kubernetes environment usin
 
 A command-line is available to apply yamls in a given directory. To generate it run `make build`, the `apply` executable will be in the `bin` directory.
 ```
-apply [-d <templates_directory>] [-values <values_file_path>] [-k <kubeconfig_file_path>] [-dry-run] [-v n]
+apply [-d <templates_directory>| -f <template_file> ] [-o <output_file>] [-k <kubeconfig_file_path>] [-dry-run] [-v n] [-values <values_file_path>] 
 ```
 - `-d` The templates directory, default ".".
+- `-f` a yaml file to apply. Not compatible with `-d`
+- `-o` The output file, if set the yamls will be not applied but a file will be created and can used with `kubectl apply -f`
 - `-values` The values.yaml file path
 - `-k` The path to the kubeconfig, if not set the KUBECONFIG env var will be use, if not set the default home user localtion is used.
 - `-dry-run` Display only (do not apply) the yamls that will be applied
 - `-v` verbosity level.
 - `-h` display the Usage.
+- `-delete` if set the resources will be deleted.
 - `-force` Remove all finalizer after the deletion of the resource except for namespaces and CRD.
 
 ## Implementing a reader

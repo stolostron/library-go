@@ -40,7 +40,7 @@ func main() {
 		"Output file. If set nothing will be applied but a file will be generate "+
 			"which you can apply later with 'kubectl <create|apply|delete> -f")
 	flag.StringVar(&o.directory, "d", ".", "The directory containing the templates, default '.'")
-	flag.StringVar(&o.valuesPath, "values", "values.yaml", "The directory containing the templates, default 'values.yaml'")
+	flag.StringVar(&o.valuesPath, "values", "", "The directory containing the templates")
 	flag.StringVar(&o.kubeconfigPath, "k", "", "The kubeconfig file")
 	flag.BoolVar(&o.dryRun, "dry-run", false, "if set only the rendered yaml will be shown, default false")
 	flag.StringVar(&o.prefix, "p", "", "The prefix to add to each value names, for example 'Values'")
@@ -79,7 +79,7 @@ func checkOptions(o *Option) error {
 		o.directory = ""
 	}
 	if o.valuesPath == "" {
-		return fmt.Errorf("-values is must be provided")
+		fmt.Println("WARNING: no values.yaml file provided")
 	}
 	if o.inFile != "" && o.directory != "" {
 		return fmt.Errorf("-f and -d are incompatible")
@@ -91,10 +91,13 @@ func checkOptions(o *Option) error {
 	return nil
 }
 
-func apply(o Option) error {
-	b, err := ioutil.ReadFile(filepath.Clean(o.valuesPath))
-	if err != nil {
-		return err
+func apply(o Option) (err error) {
+	var b []byte
+	if o.valuesPath != "" {
+		b, err = ioutil.ReadFile(filepath.Clean(o.valuesPath))
+		if err != nil {
+			return err
+		}
 	}
 
 	valuesc := &Values{}
@@ -122,6 +125,7 @@ func apply(o Option) error {
 			if err != nil {
 				return err
 			}
+			klog.V(1).Infof("result:\n%s", string(out))
 			return ioutil.WriteFile(filepath.Clean(o.outFile), out, 0600)
 		} else {
 			templateReader := templateprocessor.NewYamlFileReader(o.directory)
@@ -133,6 +137,8 @@ func apply(o Option) error {
 			if err != nil {
 				return err
 			}
+			out := templateprocessor.ConvertArrayOfBytesToString(outV)
+			klog.V(1).Infof("result:\n%s", out)
 			return ioutil.WriteFile(filepath.Clean(o.outFile), []byte(templateprocessor.ConvertArrayOfBytesToString(outV)), 0600)
 		}
 	}
