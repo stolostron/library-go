@@ -26,14 +26,10 @@ var genericMap = map[string]interface{}{
 	"encodeBase64": encodeBase64,
 }
 
-func toYaml(o interface{}) (string, error) {
-	m, err := yaml.Marshal(o)
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
+func toYaml(o interface{}) string {
+	m, _ := yaml.Marshal(o)
 	klog.V(5).Infof(string(m))
-	return string(m), nil
+	return string(m)
 }
 
 func encodeBase64(s string) string {

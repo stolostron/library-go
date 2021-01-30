@@ -18,10 +18,8 @@ deps:
 test:
 	@if ! which kubebuilder > /dev/null; then \
 	  echo "Please install kubebuilder, run 'make deps'"; \
-	  echo "then run"; \
-	  echo "export PATH=\$$PATH:/usr/local/kubebuilder/bin"; \
 	else \
-	  $(UNIT_TEST_COMMAND); \
+		$(UNIT_TEST_COMMAND); \
 	fi
 
 .PHONY: go/gosec-install
@@ -96,7 +94,7 @@ build:
 
 .PHONY: functional-test
 functional-test:
-	ginkgo -tags functional -v --slowSpecThreshold=30 test/functional -- -v=1
+	ginkgo -tags functional -v --slowSpecThreshold=30 test/functional -test.coverprofile test/functional/coverage/functional.out -- -v=1
 
 .PHONY: functional-test-full
 functional-test-full: 

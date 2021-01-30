@@ -11,7 +11,6 @@ if ! which golangci-lint > /dev/null; then
    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.6
 fi
 
-export PATH=$PATH:/usr/local/kubebuilder/bin
 if ! which kubebuilder > /dev/null; then
    # Install kubebuilder for unit test
    echo "Install Kubebuilder components for test framework usage!"
@@ -22,6 +21,7 @@ if ! which kubebuilder > /dev/null; then
    # move to a long-term location and put it on your path
    # (you'll need to set the KUBEBUILDER_ASSETS env var if you put it somewhere else)
    sudo mv /tmp/kubebuilder_"$KubeBuilderVersion"_"${_OS}"_"${_ARCH}" /usr/local/kubebuilder
+   export PATH=$PATH:/usr/local/kubebuilder/bin
 fi
 
 # Build tools

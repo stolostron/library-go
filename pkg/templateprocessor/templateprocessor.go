@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/Masterminds/sprig/v3"
+	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
@@ -218,12 +218,12 @@ func (tp *TemplateProcessor) TemplateResource(
 	klog.V(5).Infof("\nb--->\n%s\n---", string(b))
 	h = append(h, b[:]...)
 	klog.V(5).Infof("\nh+b--->\n%s\n---", string(h))
-	templated, err := TemplateBytes(h, values)
+	templated, err := tp.TemplateBytes(h, values)
 	return templated, err
 }
 
 //TemplateBytes render the given template with the provided values
-func TemplateBytes(
+func (tp *TemplateProcessor) TemplateBytes(
 	b []byte,
 	values interface{},
 ) ([]byte, error) {
@@ -315,7 +315,6 @@ func (tp *TemplateProcessor) AssetNamesInPath(
 		if isExcluded(name, excluded) {
 			continue
 		}
-		klog.V(5).Infof("filepath.Dir(%s)=%s", name, filepath.Dir(name))
 		if (recursive && strings.HasPrefix(filepath.Join(filepath.Dir(name), name), path)) ||
 			(!recursive && filepath.Dir(name) == path) {
 			results = append(results, name)
@@ -434,7 +433,7 @@ func (tp *TemplateProcessor) TemplateBytesUnstructured(
 	resources []byte,
 	values interface{},
 	delimiter string) (us []*unstructured.Unstructured, err error) {
-	templatedAssets, err := TemplateBytes(resources, values)
+	templatedAssets, err := tp.TemplateBytes(resources, values)
 	if err != nil {
 		return nil, err
 	}
