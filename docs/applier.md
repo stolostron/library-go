@@ -26,6 +26,11 @@ applier [-d <templates_directory>| -f <template_file> ] [-o <output_file>] [-k <
 - `-delete` if set the resources will be deleted.
 - `-force` Remove all finalizer after the deletion of the resource except for namespaces and CRD.
 
+The CLI accept values from pipe. These values are appened to the provided values.yaml. As the piped values are added at the end of the provided values.yaml, the piped values could override the values provided in values.yaml.
+
+For example:
+`echo "att1: val1" | applier -d <mydir>`
+
 ## Implementing a reader
 
 A reader will read assets from a data source. You can find [testreade.go](../pkg/templateprocessor/testreader.go) an example of a reader which reads the data from memory.

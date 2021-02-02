@@ -78,9 +78,6 @@ func checkOptions(o *Option) error {
 	if o.inFile != "" {
 		o.directory = ""
 	}
-	if o.valuesPath == "" {
-		fmt.Println("WARNING: no values.yaml file provided")
-	}
 	if o.inFile != "" && o.directory != "" {
 		return fmt.Errorf("-f and -d are incompatible")
 	}
@@ -98,6 +95,19 @@ func apply(o Option) (err error) {
 		if err != nil {
 			return err
 		}
+	}
+
+	fi, err := os.Stdin.Stat()
+	if err != nil {
+		return err
+	}
+	if fi.Mode()&os.ModeNamedPipe != 0 {
+		b = append(b, '\n')
+		pdata, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return err
+		}
+		b = append(b, pdata...)
 	}
 
 	valuesc := &Values{}
