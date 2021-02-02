@@ -458,19 +458,24 @@ func (tp *TemplateProcessor) TemplateBytesUnstructured(
 
 //BytesArrayToUnstructured transform a [][]byte to an []*unstructured.Unstructured using the TemplateProcessor reader
 func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*unstructured.Unstructured, err error) {
-	us = make([]*unstructured.Unstructured, len(assets))
-	for i, b := range assets {
-		u, err := tp.BytesToUnstructured(b)
-		if err != nil {
-			return nil, err
+	us = make([]*unstructured.Unstructured, 0)
+	for _, b := range assets {
+		// Maybe the asset contains multiple assets separated by "---\n"
+		bb := ConvertStringToArrayOfBytes(string(b))
+		for _, b := range bb {
+			u, err := tp.BytesToUnstructured(b)
+			if err != nil {
+				return nil, err
+			}
+			us = append(us, u)
 		}
-		us[i] = u
 	}
 	return us, nil
 }
 
 //BytesToUnstructured transform a []byte to an *unstructured.Unstructured using the TemplateProcessor reader
 func (tp *TemplateProcessor) BytesToUnstructured(asset []byte) (*unstructured.Unstructured, error) {
+	klog.V(5).Infof("assets:\n%s", string(asset))
 	j, err := tp.reader.ToJSON(asset)
 	if err != nil {
 		return nil, err
@@ -530,6 +535,18 @@ func ConvertArrayOfBytesToArrayOfString(in [][]byte) (out []string) {
 	out = make([]string, 0)
 	for _, o := range in {
 		out = append(out, string(o))
+	}
+	return out
+}
+
+func ConvertStringToArrayOfBytes(in string) (out [][]byte) {
+	ss := strings.Split(in, "---\n")
+	out = make([][]byte, 0)
+	for _, s := range ss {
+		trim := strings.TrimSuffix(s, "\n")
+		if len(strings.TrimSpace(trim)) != 0 {
+			out = append(out, []byte(s))
+		}
 	}
 	return out
 }
