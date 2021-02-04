@@ -5,6 +5,7 @@ import (
 	goerr "errors"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -14,6 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 )
+
+const KubernetesYamlsDelimiter = "(?m)^-{3}$"
+const KubernetesYamlsDelimiterString = "---\n"
 
 //TemplateProcessor this structure holds all objects for the TemplateProcessor
 type TemplateProcessor struct {
@@ -37,7 +41,9 @@ type TemplateReader interface {
 
 //Options defines for the available options for the templateProcessor
 type Options struct {
-	KindsOrder SortType
+	KindsOrder      SortType
+	DelimiterString string
+	Delimiter       string
 	//Override the default order, it contains the kind order which the templateProcess must use to sort all resources.
 	CreateUpdateKindsOrder KindsOrder
 	DeleteKindsOrder       KindsOrder
@@ -148,6 +154,23 @@ func NewTemplateProcessor(
 	}
 	if options.KindsOrder == "" {
 		options.KindsOrder = sortTypeCreateUpdate
+	}
+	if options.Delimiter == "" {
+		options.Delimiter = KubernetesYamlsDelimiter
+	}
+	if options.DelimiterString == "" {
+		options.DelimiterString = KubernetesYamlsDelimiterString
+	}
+	re, err := regexp.Compile(options.Delimiter)
+	if err != nil {
+		return nil, err
+	}
+	ss := re.FindAllString(options.DelimiterString, -1)
+	if len(ss) != 1 || ss[0] != strings.TrimSuffix(options.DelimiterString, "\n") {
+		return nil,
+			fmt.Errorf("Regexp options.Delimiter %s is not perfectly matching options.DelimiterString %s",
+				options.Delimiter,
+				options.DelimiterString)
 	}
 	return &TemplateProcessor{
 		reader:  reader,
@@ -461,7 +484,7 @@ func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*un
 	us = make([]*unstructured.Unstructured, 0)
 	for _, b := range assets {
 		// Maybe the asset contains multiple assets separated by "---\n"
-		bb := ConvertStringToArrayOfBytes(string(b))
+		bb := ConvertStringToArrayOfBytes(string(b), tp.options.Delimiter)
 		for _, b := range bb {
 			u, err := tp.BytesToUnstructured(b)
 			if err != nil {
@@ -527,7 +550,7 @@ func (tp *TemplateProcessor) weight(u *unstructured.Unstructured) int {
 
 func ConvertArrayOfBytesToString(in [][]byte) (out string) {
 	ss := ConvertArrayOfBytesToArrayOfString(in)
-	out = fmt.Sprint(strings.Join(ss, "---\n"))
+	out = fmt.Sprint(strings.Join(ss, KubernetesYamlsDelimiterString))
 	return out
 }
 
@@ -539,8 +562,9 @@ func ConvertArrayOfBytesToArrayOfString(in [][]byte) (out []string) {
 	return out
 }
 
-func ConvertStringToArrayOfBytes(in string) (out [][]byte) {
-	ss := strings.Split(in, "---\n")
+func ConvertStringToArrayOfBytes(in, delimiter string) (out [][]byte) {
+	re := regexp.MustCompile(delimiter)
+	ss := re.Split(in, -1)
 	out = make([][]byte, 0)
 	for _, s := range ss {
 		trim := strings.TrimSuffix(s, "\n")

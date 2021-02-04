@@ -52,7 +52,7 @@ func TestNewYamlStringReader(t *testing.T) {
 			name: "create",
 			args: args{
 				Yamls:     assetsYaml,
-				delimiter: "---",
+				delimiter: KubernetesYamlsDelimiter,
 			},
 			want: &YamlStringReader{
 				Yamls: assetsYamls,

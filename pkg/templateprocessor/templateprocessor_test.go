@@ -388,17 +388,16 @@ func TestTemplateProcessor_TemplateBytesUnstructured(t *testing.T) {
 			args: args{
 				assets:    assetsB,
 				values:    values,
-				delimiter: "---",
+				delimiter: KubernetesYamlsDelimiter,
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tp := &TemplateProcessor{
-				reader:  tt.fields.reader,
-				options: tt.fields.options,
-			}
+			tp, _ := NewTemplateProcessor(
+				tt.fields.reader,
+				tt.fields.options)
 			gotUs, err := tp.TemplateBytesUnstructured(tt.args.assets, tt.args.values, tt.args.delimiter)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TemplateProcessor.TemplateBytesUnstructured() error = %v, wantErr %v", err, tt.wantErr)
@@ -460,10 +459,9 @@ func TestTemplateProcessor_AssetNamesInPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tp := &TemplateProcessor{
-				reader:  tt.fields.reader,
-				options: tt.fields.options,
-			}
+			tp, _ := NewTemplateProcessor(
+				tt.fields.reader,
+				tt.fields.options)
 			got, err := tp.AssetNamesInPath(tt.args.path, tt.args.excluded, tt.args.recursive)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TemplateProcessor.AssetNamesInPath() error = %v, wantErr %v", err, tt.wantErr)
