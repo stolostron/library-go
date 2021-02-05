@@ -153,7 +153,7 @@ func (a *Applier) CreateOrUpdateInPath(
 	values interface{},
 ) error {
 	a.templateProcessor.SetCreateUpdateOrder()
-	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+	us, err := a.templateProcessor.TemplateResourcesInPathUnstructured(
 		path,
 		excluded,
 		recursive,
@@ -180,7 +180,7 @@ func (a *Applier) CreateInPath(
 	values interface{},
 ) error {
 	a.templateProcessor.SetCreateUpdateOrder()
-	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+	us, err := a.templateProcessor.TemplateResourcesInPathUnstructured(
 		path,
 		excluded,
 		recursive,
@@ -207,7 +207,7 @@ func (a *Applier) UpdateInPath(
 	values interface{},
 ) error {
 	a.templateProcessor.SetCreateUpdateOrder()
-	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+	us, err := a.templateProcessor.TemplateResourcesInPathUnstructured(
 		path,
 		excluded,
 		recursive,
@@ -234,7 +234,7 @@ func (a *Applier) DeleteInPath(
 	values interface{},
 ) error {
 	a.templateProcessor.SetDeleteOrder()
-	us, err := a.templateProcessor.TemplateAssetsInPathUnstructured(
+	us, err := a.templateProcessor.TemplateResourcesInPathUnstructured(
 		path,
 		excluded,
 		recursive,
@@ -244,25 +244,6 @@ func (a *Applier) DeleteInPath(
 		return err
 	}
 	return a.Deletes(us)
-}
-
-// Deprecated: Please use another CreateOrUpdateInPath or CreateOrUpdateResouces
-// methods with a YamlStringReader
-// CreateOrUpdateAssets create or update all resources defined in the assets.
-// The asserts are separated by the delimiter (ie: "---" for yamls)
-// However the assets is a parameter it requires a reader to define the ToJSON method.
-// Please use another method with a YamlStringReader
-func (a *Applier) CreateOrUpdateAssets(
-	assets []byte,
-	values interface{},
-	delimiter string,
-) error {
-	a.templateProcessor.SetCreateUpdateOrder()
-	us, err := a.templateProcessor.TemplateBytesUnstructured(assets, values, delimiter)
-	if err != nil {
-		return err
-	}
-	return a.CreateOrUpdates(us)
 }
 
 //CreateOrUpdateResources creates or update resources
@@ -329,15 +310,6 @@ func (a *Applier) toUnstructureds(assetNames []string,
 		return nil, err
 	}
 	return us, err
-}
-
-//Deprecated: Use CreateOrUpdateResource
-//CreateorUpdateAsset create or updates an asset
-func (a *Applier) CreateOrUpdateAsset(
-	assetName string,
-	values interface{},
-) error {
-	return a.CreateOrUpdateResource(assetName, values)
 }
 
 //CreateorUpdateAsset create or updates an asset
@@ -469,6 +441,9 @@ func (a *Applier) CreateOrUpdate(
 		" Kind: ", u.GetKind(),
 		" Name: ", u.GetName(),
 		" Namespace: ", u.GetNamespace())
+	if u.GetKind() == "" {
+		return fmt.Errorf("Kind is missing for Name: %s, Namespace: %s", u.GetName(), u.GetNamespace())
+	}
 
 	//Check if already exists
 	current := &unstructured.Unstructured{}
@@ -516,6 +491,9 @@ func (a *Applier) Create(
 		" Kind: ", u.GetKind(),
 		" Name: ", u.GetName(),
 		" Namespace: ", u.GetNamespace())
+	if u.GetKind() == "" {
+		return fmt.Errorf("Kind is missing for Name: %s, Namespace: %s", u.GetName(), u.GetNamespace())
+	}
 	//Set controller ref
 	err := a.setControllerReference(u)
 	if err != nil {
@@ -567,6 +545,9 @@ func (a *Applier) Update(
 		" Kind: ", u.GetKind(),
 		" Name: ", u.GetName(),
 		" Namespace: ", u.GetNamespace())
+	if u.GetKind() == "" {
+		return fmt.Errorf("Kind is missing for Name: %s, Namespace: %s", u.GetName(), u.GetNamespace())
+	}
 	//Set controller ref
 	err := a.setControllerReference(u)
 	if err != nil {
@@ -654,6 +635,9 @@ func (a *Applier) Delete(
 		" Kind: ", u.GetKind(),
 		" Name: ", u.GetName(),
 		" Namespace: ", u.GetNamespace())
+	if u.GetKind() == "" {
+		return fmt.Errorf("Kind is missing for Name: %s, Namespace: %s", u.GetName(), u.GetNamespace())
+	}
 	var clientDeleteOptions []client.DeleteOption
 	if a.applierOptions != nil {
 		clientDeleteOptions = a.applierOptions.ClientDeleteOption

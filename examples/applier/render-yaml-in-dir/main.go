@@ -82,7 +82,7 @@ func renderYamlFile() error {
 	//and passing the values to replace
 	//The output is sorted
 	klog.Info("Render resources\n")
-	out, err := tp.TemplateAssetsInPathYaml(
+	out, err := tp.TemplateResourcesInPathYaml(
 		"yamlfilereader",
 		[]string{"yamlfilereader/clusterrolebinding.yaml"},
 		false,

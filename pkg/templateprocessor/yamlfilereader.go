@@ -10,37 +10,41 @@ import (
 )
 
 type YamlFileReader struct {
-	rootDirectory string
+	path string
 }
 
 var _ TemplateReader = &YamlFileReader{
-	rootDirectory: "",
+	path: "",
 }
 
 func (r *YamlFileReader) Asset(
 	name string,
 ) ([]byte, error) {
-	return ioutil.ReadFile(filepath.Clean(filepath.Join(r.rootDirectory, name)))
+	return ioutil.ReadFile(filepath.Clean(filepath.Join(r.path, name)))
 }
 
 func (r *YamlFileReader) AssetNames() ([]string, error) {
 	keys := make([]string, 0)
-	_, err := os.Open(r.rootDirectory)
+	fi, err := os.Stat(r.path)
 	if err != nil {
 		return keys, err
 	}
-	err = filepath.Walk(r.rootDirectory, func(path string, info os.FileInfo, err error) error {
-		if info != nil {
-			if !info.IsDir() {
-				newPath, err := filepath.Rel(r.rootDirectory, path)
-				if err != nil {
-					return err
+	if fi.Mode().IsDir() {
+		err = filepath.Walk(r.path, func(path string, info os.FileInfo, err error) error {
+			if info != nil {
+				if !info.IsDir() {
+					newPath, err := filepath.Rel(r.path, path)
+					if err != nil {
+						return err
+					}
+					keys = append(keys, newPath)
 				}
-				keys = append(keys, newPath)
 			}
-		}
-		return nil
-	})
+			return nil
+		})
+	} else {
+		keys = append(keys, "")
+	}
 	return keys, err
 }
 
@@ -56,9 +60,9 @@ func (*YamlFileReader) ToJSON(
 }
 
 func NewYamlFileReader(
-	rootDirectory string,
+	path string,
 ) *YamlFileReader {
 	return &YamlFileReader{
-		rootDirectory: rootDirectory,
+		path: path,
 	}
 }

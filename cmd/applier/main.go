@@ -136,42 +136,24 @@ func apply(o Option) (err error) {
 
 	klog.V(5).Infof("values:\n%v", values)
 
-	if o.outFile != "" {
-		if o.inFile != "" {
-			b, err := ioutil.ReadFile(filepath.Clean(o.inFile))
-			if err != nil {
-				return err
-			}
-			out, err := templateprocessor.TemplateBytes(b, values)
-			if err != nil {
-				return err
-			}
-			klog.V(1).Infof("result:\n%s", string(out))
-			return ioutil.WriteFile(filepath.Clean(o.outFile), out, 0600)
-		} else {
-			templateReader := templateprocessor.NewYamlFileReader(o.directory)
-			templateProcessor, err := templateprocessor.NewTemplateProcessor(templateReader, &templateprocessor.Options{})
-			if err != nil {
-				return err
-			}
-			outV, err := templateProcessor.TemplateResourcesInPathYaml("", []string{}, true, values)
-			if err != nil {
-				return err
-			}
-			out := templateprocessor.ConvertArrayOfBytesToString(outV)
-			klog.V(1).Infof("result:\n%s", out)
-			return ioutil.WriteFile(filepath.Clean(o.outFile), []byte(templateprocessor.ConvertArrayOfBytesToString(outV)), 0600)
-		}
-	}
 	var templateReader templateprocessor.TemplateReader
 	if o.inFile != "" {
-		b, err := ioutil.ReadFile(filepath.Clean(o.inFile))
+		templateReader = templateprocessor.NewYamlFileReader(o.inFile)
+	} else {
+		templateReader = templateprocessor.NewYamlFileReader(o.directory)
+	}
+	if o.outFile != "" {
+		templateProcessor, err := templateprocessor.NewTemplateProcessor(templateReader, &templateprocessor.Options{})
 		if err != nil {
 			return err
 		}
-		templateReader = templateprocessor.NewYamlStringReader(string(b), templateprocessor.KubernetesYamlsDelimiter)
-	} else {
-		templateReader = templateprocessor.NewYamlFileReader(o.directory)
+		outV, err := templateProcessor.TemplateResourcesInPathYaml("", []string{}, true, values)
+		if err != nil {
+			return err
+		}
+		out := templateprocessor.ConvertArrayOfBytesToString(outV)
+		klog.V(1).Infof("result:\n%s", out)
+		return ioutil.WriteFile(filepath.Clean(o.outFile), []byte(templateprocessor.ConvertArrayOfBytesToString(outV)), 0600)
 	}
 	client, err := libgoclient.NewDefaultClient(o.kubeconfigPath, crclient.Options{})
 	if err != nil {
