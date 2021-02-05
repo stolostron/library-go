@@ -9,10 +9,7 @@ import (
 	"k8s.io/klog"
 )
 
-var tmpl *template.Template
-
-func ApplierFuncMap(t *template.Template) template.FuncMap {
-	tmpl = t
+func ApplierFuncMap() template.FuncMap {
 	return template.FuncMap(GenericFuncMap())
 }
 
@@ -28,7 +25,6 @@ func GenericFuncMap() map[string]interface{} {
 var genericMap = map[string]interface{}{
 	"toYaml":       toYaml,
 	"encodeBase64": encodeBase64,
-	"include":      include,
 }
 
 func toYaml(o interface{}) (string, error) {
@@ -37,7 +33,7 @@ func toYaml(o interface{}) (string, error) {
 		klog.Error(err)
 		return "", err
 	}
-	klog.V(5).Infof(string(m))
+	klog.V(5).Infof("\n%s", string(m))
 	return string(m), nil
 }
 
@@ -45,10 +41,14 @@ func encodeBase64(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-func include(name string, data interface{}) (string, error) {
-	buf := bytes.NewBuffer(nil)
-	if err := tmpl.ExecuteTemplate(buf, name, data); err != nil {
-		return "", err
+func TemplateFuncMap(tmpl *template.Template) (funcMap template.FuncMap) {
+	funcMap = make(template.FuncMap, 0)
+	funcMap["include"] = func(name string, data interface{}) (string, error) {
+		buf := bytes.NewBuffer(nil)
+		if err := tmpl.ExecuteTemplate(buf, name, data); err != nil {
+			return "", err
+		}
+		return buf.String(), nil
 	}
-	return buf.String(), nil
+	return funcMap
 }
