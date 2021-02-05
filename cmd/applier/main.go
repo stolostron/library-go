@@ -30,6 +30,7 @@ type Option struct {
 	delete         bool
 	timeout        int
 	force          bool
+	silent         bool
 }
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 	flag.StringVar(&o.outFile, "o", "",
 		"Output file. If set nothing will be applied but a file will be generate "+
 			"which you can apply later with 'kubectl <create|apply|delete> -f")
-	flag.StringVar(&o.directory, "d", ".", "The directory containing the templates, default '.'")
+	flag.StringVar(&o.directory, "d", "", "The directory containing the templates, default '.'")
 	flag.StringVar(&o.valuesPath, "values", "", "The directory containing the templates")
 	flag.StringVar(&o.kubeconfigPath, "k", "", "The kubeconfig file")
 	flag.BoolVar(&o.dryRun, "dry-run", false, "if set only the rendered yaml will be shown, default false")
@@ -48,6 +49,7 @@ func main() {
 		"if set only the resource defined in the yamls will be deleted, default false")
 	flag.IntVar(&o.timeout, "t", 5, "Timeout in second to apply one resource, default 5 sec")
 	flag.BoolVar(&o.force, "force", false, "If set, the finalizers will be removed before delete")
+	flag.BoolVar(&o.silent, "s", false, "If set the applier will run silently")
 	flag.Parse()
 
 	err := checkOptions(&o)
@@ -62,12 +64,18 @@ func main() {
 		os.Exit(1)
 	}
 	if o.dryRun {
-		fmt.Println("Dryrun successfully executed")
+		if !o.silent {
+			fmt.Println("Dryrun successfully executed")
+		}
 	} else {
 		if o.outFile != "" {
-			fmt.Println("Successfully processed")
+			if !o.silent {
+				fmt.Println("Successfully processed")
+			}
 		} else {
-			fmt.Println("Sccessfully applied")
+			if !o.silent {
+				fmt.Println("Sccessfully applied")
+			}
 		}
 	}
 }
@@ -77,6 +85,9 @@ func checkOptions(o *Option) error {
 	klog.V(2).Infof("-d: %s", o.directory)
 	if o.inFile != "" {
 		o.directory = ""
+	}
+	if o.inFile == "" && o.directory == "" {
+		return fmt.Errorf("-f or -d must be set")
 	}
 	if o.inFile != "" && o.directory != "" {
 		return fmt.Errorf("-f and -d are incompatible")

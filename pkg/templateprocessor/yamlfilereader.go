@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/ghodss/yaml"
+	"k8s.io/klog"
 )
 
 type YamlFileReader struct {
@@ -46,7 +47,12 @@ func (r *YamlFileReader) AssetNames() ([]string, error) {
 func (*YamlFileReader) ToJSON(
 	b []byte,
 ) ([]byte, error) {
-	return yaml.YAMLToJSON(b)
+	b, err := yaml.YAMLToJSON(b)
+	if err != nil {
+		klog.Errorf("err:%s\nyaml:\n%s", err, string(b))
+		return nil, err
+	}
+	return b, nil
 }
 
 func NewYamlFileReader(

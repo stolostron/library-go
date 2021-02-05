@@ -1,6 +1,7 @@
 package templateprocessor
 
 import (
+	"bytes"
 	"encoding/base64"
 	"text/template"
 
@@ -8,7 +9,10 @@ import (
 	"k8s.io/klog"
 )
 
-func ApplierFuncMap() template.FuncMap {
+var tmpl *template.Template
+
+func ApplierFuncMap(t *template.Template) template.FuncMap {
+	tmpl = t
 	return template.FuncMap(GenericFuncMap())
 }
 
@@ -24,6 +28,7 @@ func GenericFuncMap() map[string]interface{} {
 var genericMap = map[string]interface{}{
 	"toYaml":       toYaml,
 	"encodeBase64": encodeBase64,
+	"include":      include,
 }
 
 func toYaml(o interface{}) (string, error) {
@@ -38,4 +43,12 @@ func toYaml(o interface{}) (string, error) {
 
 func encodeBase64(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
+}
+
+func include(name string, data interface{}) (string, error) {
+	buf := bytes.NewBuffer(nil)
+	if err := tmpl.ExecuteTemplate(buf, name, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }

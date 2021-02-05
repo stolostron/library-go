@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
+	"k8s.io/klog"
 )
 
 type YamlStringReader struct {
@@ -41,7 +42,12 @@ func (r *YamlStringReader) AssetNames() ([]string, error) {
 func (*YamlStringReader) ToJSON(
 	b []byte,
 ) ([]byte, error) {
-	return yaml.YAMLToJSON(b)
+	b, err := yaml.YAMLToJSON(b)
+	if err != nil {
+		klog.Errorf("err:%s\nyaml:\n%s", err, string(b))
+		return nil, err
+	}
+	return b, nil
 }
 
 //NewYamlStringReader returns a YamlStringReader

@@ -251,9 +251,10 @@ func TemplateBytes(
 	values interface{},
 ) ([]byte, error) {
 	var buf bytes.Buffer
-	tmpl, err := template.New("yamls").
-		Option("missingkey=error").
-		Funcs(ApplierFuncMap()).
+	tmpl := template.New("yamls").
+		Option("missingkey=error")
+
+	tmpl, err := tmpl.Funcs(ApplierFuncMap(tmpl)).
 		Funcs(sprig.TxtFuncMap()).
 		Parse(string(b))
 	if err != nil {
