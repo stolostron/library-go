@@ -20,7 +20,6 @@ import (
 type Values map[string]interface{}
 
 type Option struct {
-	inFile         string
 	outFile        string
 	directory      string
 	valuesPath     string
@@ -36,11 +35,10 @@ type Option struct {
 func main() {
 	var o Option
 	klog.InitFlags(nil)
-	flag.StringVar(&o.inFile, "f", "", "The file to process")
 	flag.StringVar(&o.outFile, "o", "",
 		"Output file. If set nothing will be applied but a file will be generate "+
 			"which you can apply later with 'kubectl <create|apply|delete> -f")
-	flag.StringVar(&o.directory, "d", "", "The directory containing the templates, default '.'")
+	flag.StringVar(&o.directory, "d", "", "The directory or file containing the template(s)")
 	flag.StringVar(&o.valuesPath, "values", "", "The directory containing the templates")
 	flag.StringVar(&o.kubeconfigPath, "k", "", "The kubeconfig file")
 	flag.BoolVar(&o.dryRun, "dry-run", false, "if set only the rendered yaml will be shown, default false")
@@ -70,7 +68,7 @@ func main() {
 	} else {
 		if o.outFile != "" {
 			if !o.silent {
-				fmt.Println("Successfully processed")
+				fmt.Println("Successfully generated")
 			}
 		} else {
 			if !o.silent {
@@ -81,20 +79,13 @@ func main() {
 }
 
 func checkOptions(o *Option) error {
-	klog.V(2).Infof("-f: %s", o.inFile)
 	klog.V(2).Infof("-d: %s", o.directory)
-	if o.inFile != "" {
-		o.directory = ""
-	}
-	if o.inFile == "" && o.directory == "" {
-		return fmt.Errorf("-f or -d must be set")
-	}
-	if o.inFile != "" && o.directory != "" {
-		return fmt.Errorf("-f and -d are incompatible")
+	if o.directory == "" {
+		return fmt.Errorf("-d must be set")
 	}
 	if o.outFile != "" &&
 		(o.dryRun || o.delete || o.force) {
-		return fmt.Errorf("-o is not compatible with -d, delete or force")
+		return fmt.Errorf("-o is not compatible with -dry-run, delete or force")
 	}
 	return nil
 }
@@ -136,12 +127,7 @@ func apply(o Option) (err error) {
 
 	klog.V(5).Infof("values:\n%v", values)
 
-	var templateReader templateprocessor.TemplateReader
-	if o.inFile != "" {
-		templateReader = templateprocessor.NewYamlFileReader(o.inFile)
-	} else {
-		templateReader = templateprocessor.NewYamlFileReader(o.directory)
-	}
+	templateReader := templateprocessor.NewYamlFileReader(o.directory)
 	if o.outFile != "" {
 		templateProcessor, err := templateprocessor.NewTemplateProcessor(templateReader, &templateprocessor.Options{})
 		if err != nil {

@@ -13,10 +13,9 @@ The resources are sorted in order to be applied in a kubernetes environment usin
 
 A command-line is available to apply yamls in a given directory. To generate it run `make build`, the `apply` executable will be in the `bin` directory.
 ```
-applier [-d <templates_directory>| -f <template_file> ] [-o <output_file>] [-k <kubeconfig_file_path>] [-dry-run] [-v n] [-values <values_file_path>] 
+applier -d <templates_directory> [-o <output_file>] [-k <kubeconfig_file_path>] [-dry-run] [-v n] [-values <values_file_path>] 
 ```
-- `-d` The templates directory, default ".".
-- `-f` a yaml file to apply. Not compatible with `-d`
+- `-d` The templates directory or file. If a `_helpers.tpl` file exists in the same directory of the file, the `_helpers.tpl` will be included.
 - `-o` The output file, if set the yamls will be not applied but a file will be created and can used with `kubectl apply -f`
 - `-values` The values.yaml file path
 - `-k` The path to the kubeconfig, if not set the KUBECONFIG env var will be use, if not set the default home user localtion is used.
@@ -31,19 +30,25 @@ The CLI accept values from pipe. These values are appened to the provided values
 For example:
 `echo "att1: val1" | applier -d <mydir>`
 
-## Implementing a reader
+## Go Package
+### Implementing a reader
 
-A reader will read assets from a data source. You can find [testreade.go](../pkg/templateprocessor/testreader.go) an example of a reader which reads the data from memory.
+A reader allows the applier to read the templates. Two readers are provided in the package:
+
+- A Files reader: The files reader reads manage a single file template or all templates in a given directory. The applier has the capability to walk recursively in the directory if required. A new instance of the reader can be created with [NewYamlFileReader](../pkg/templateprocessor/yamlfilereader.go)
+- A String reader: The string reader reads templates from a string. Each template are separated by a delimiter. A new instance of the reader can be created with [NewYamlStringReader](../pkg/templateprocessor/yamlstringreader.go)
+
+A reader will read assets from a data source. You can find [testreader.go](../pkg/templateprocessor/testreader.go) an example of a reader which reads the data from memory.
 
 A bindata implementation can be found [bindata](../examples/templateprocessor/bindata/bindata/bindatareader.go)
 
-## Methods
+### Methods
 
 In [applier](../pkg/templateprocessor) there are methods which process the yaml templates, return them as a list of yamls or list of `unstructured.Unstructured`.
 There are also methods that sort these processed yaml templates depending of their `kind`. The order is defined in `kindOrder` variable which can be override.
-A method `CreateOrUpdateInPath` creates or update all resources localted in a specific path.
+Methods such as `CreateOrUpdateInPath` or `DeleteInPath` which `creates/update` or `delete` all resources definedd in a specific path. Other methods are available in the file [applier.go](../pkg/applier/applier.go)
 
-### Example 1: Generate a templated yaml
+#### Example 1: Generate a templated yaml
 
 ```
 	values := struct {
@@ -64,7 +69,7 @@ A method `CreateOrUpdateInPath` creates or update all resources localted in a sp
 ```
 The result contains a `[]byte` representing the templated yaml with the provided config.
 
-### Example 2: Generate a list of templated yaml
+#### Example 2: Generate a list of templated yaml
 
 ```
 	values := struct {
@@ -103,7 +108,7 @@ The result contains a `[]byte` representing the templated yaml with the provided
 ```
 results contains a non-sorted `[][]bytes` each element is the templated yamls using the provided values.
 
-### Example 3: Retreive a list of yamls
+#### Example 3: Retreive a list of yamls
 
 ```
 	tp, err := NewTemplateProcessor(NewTestReader(assets), nil, nil)
@@ -117,7 +122,7 @@ results contains a non-sorted `[][]bytes` each element is the templated yamls us
 ```
 The crds contains a `[][]byte` (non-sorted) of all yamls found in `klusterlet/crds` directory and sub-directory using the provided config.
 
-### Example 4: Generate a sorted list of yamls based using all templates in a given directory
+#### Example 4: Generate a sorted list of yamls based using all templates in a given directory
 
 ```
 	values := struct {
@@ -151,7 +156,7 @@ The crds contains a `[][]byte` (non-sorted) of all yamls found in `klusterlet/cr
 ```
 The results contains a `[][]byte`. The yamls are sorted based on the Kind, Namespace and Name of the resource. All yamls come from the `resources/klusterlet` (non-recursive) using the provided values.
 
-### Example 5: Create or update all resources defined in a directory
+#### Example 5: Create or update all resources defined in a directory
 
 ```
 var merger bindata.Merger = func(current,

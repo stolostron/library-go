@@ -10,11 +10,13 @@ import (
 )
 
 type YamlFileReader struct {
-	path string
+	path     string
+	fileName string
 }
 
 var _ TemplateReader = &YamlFileReader{
-	path: "",
+	path:     "",
+	fileName: "",
 }
 
 func (r *YamlFileReader) Asset(
@@ -25,11 +27,8 @@ func (r *YamlFileReader) Asset(
 
 func (r *YamlFileReader) AssetNames() ([]string, error) {
 	keys := make([]string, 0)
-	fi, err := os.Stat(r.path)
-	if err != nil {
-		return keys, err
-	}
-	if fi.Mode().IsDir() {
+	var err error
+	if r.fileName == "" {
 		err = filepath.Walk(r.path, func(path string, info os.FileInfo, err error) error {
 			if info != nil {
 				if !info.IsDir() {
@@ -43,7 +42,11 @@ func (r *YamlFileReader) AssetNames() ([]string, error) {
 			return nil
 		})
 	} else {
-		keys = append(keys, "")
+		helpersFile := filepath.Join(filepath.Base(r.path), "_helpers.tpl")
+		if _, err := os.Stat(helpersFile); err == nil {
+			keys = append(keys, "_helpers.tpl")
+		}
+		keys = append(keys, r.fileName)
 	}
 	return keys, err
 }
@@ -62,7 +65,16 @@ func (*YamlFileReader) ToJSON(
 func NewYamlFileReader(
 	path string,
 ) *YamlFileReader {
-	return &YamlFileReader{
+	reader := &YamlFileReader{
 		path: path,
 	}
+	fi, err := os.Stat(path)
+	if err != nil {
+		klog.Fatal(err)
+	}
+	if !fi.Mode().IsDir() {
+		reader.path = filepath.Dir(path)
+		reader.fileName = filepath.Base(path)
+	}
+	return reader
 }
