@@ -90,3 +90,12 @@ rules:
   resourceNames: ["{{ .ManagedClusterName }}"]
   verbs: ["get"]
 `
+var assetYaml = `
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .BootstrapServiceAccountName }}"
+  namespace: "{{ .ManagedClusterNamespace }}"
+secrets:
+- name: mysecret
+`

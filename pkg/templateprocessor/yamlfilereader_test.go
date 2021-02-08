@@ -37,7 +37,7 @@ metadata:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			y := &YamlFileReader{
-				rootDirectory: tt.fields.rootDirectory,
+				path: tt.fields.rootDirectory,
 			}
 			got, err := y.Asset(tt.args.name)
 			if (err != nil) != tt.wantErr {
@@ -73,7 +73,7 @@ func TestYamlFileReader_AssetNames(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &YamlFileReader{
-				rootDirectory: tt.fields.rootDirectory,
+				path: tt.fields.rootDirectory,
 			}
 			got, err := r.AssetNames()
 			if (err != nil) != tt.wantErr {
