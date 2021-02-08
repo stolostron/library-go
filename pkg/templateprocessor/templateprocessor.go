@@ -5,20 +5,27 @@ import (
 	goerr "errors"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 )
+
+const KubernetesYamlsDelimiter = "(?m)^-{3}$"
+const KubernetesYamlsDelimiterString = "---\n"
 
 //TemplateProcessor this structure holds all objects for the TemplateProcessor
 type TemplateProcessor struct {
 	//reader a TemplateReader to read the data source
 	reader TemplateReader
+	//template
+	tmpl *template.Template
 	//Options to configure the TemplateProcessor
 	options *Options
 }
@@ -37,7 +44,9 @@ type TemplateReader interface {
 
 //Options defines for the available options for the templateProcessor
 type Options struct {
-	KindsOrder SortType
+	KindsOrder      SortType
+	DelimiterString string
+	Delimiter       string
 	//Override the default order, it contains the kind order which the templateProcess must use to sort all resources.
 	CreateUpdateKindsOrder KindsOrder
 	DeleteKindsOrder       KindsOrder
@@ -149,8 +158,31 @@ func NewTemplateProcessor(
 	if options.KindsOrder == "" {
 		options.KindsOrder = sortTypeCreateUpdate
 	}
+	if options.Delimiter == "" {
+		options.Delimiter = KubernetesYamlsDelimiter
+	}
+	if options.DelimiterString == "" {
+		options.DelimiterString = KubernetesYamlsDelimiterString
+	}
+	re, err := regexp.Compile(options.Delimiter)
+	if err != nil {
+		return nil, err
+	}
+	ss := re.FindAllString(options.DelimiterString, -1)
+	if len(ss) != 1 || ss[0] != strings.TrimSuffix(options.DelimiterString, "\n") {
+		return nil,
+			fmt.Errorf("Regexp options.Delimiter %s is not perfectly matching options.DelimiterString %s",
+				options.Delimiter,
+				options.DelimiterString)
+	}
+	tmpl := template.New("yamls").
+		Option("missingkey=error").
+		Funcs(ApplierFuncMap())
+	tmpl = tmpl.Funcs(TemplateFuncMap(tmpl)).
+		Funcs(sprig.TxtFuncMap())
 	return &TemplateProcessor{
 		reader:  reader,
+		tmpl:    tmpl,
 		options: options,
 	}, nil
 }
@@ -161,16 +193,6 @@ func (tp *TemplateProcessor) SetDeleteOrder() {
 
 func (tp *TemplateProcessor) SetCreateUpdateOrder() {
 	tp.options.KindsOrder = sortTypeCreateUpdate
-}
-
-//Deprecated: Use TemplateResources
-//TemplateAssets render the given templates with the provided values
-//The assets are not sorted and returned in the same template provided order
-func (tp *TemplateProcessor) TemplateAssets(
-	templateNames []string,
-	values interface{},
-) ([][]byte, error) {
-	return tp.TemplateResources(templateNames, values)
 }
 
 //TemplateResources render the given templates with the provided values
@@ -190,15 +212,6 @@ func (tp *TemplateProcessor) TemplateResources(
 		}
 	}
 	return results, nil
-}
-
-//Deprecated: Use TemplateResource
-//TemplateAsset render the given template with the provided values
-func (tp *TemplateProcessor) TemplateAsset(
-	templateName string,
-	values interface{},
-) ([]byte, error) {
-	return tp.TemplateResource(templateName, values)
 }
 
 //TemplateResource render the given template with the provided values
@@ -228,18 +241,16 @@ func (tp *TemplateProcessor) TemplateBytes(
 	values interface{},
 ) ([]byte, error) {
 	var buf bytes.Buffer
-	tmpl, err := template.New("yamls").
-		Option("missingkey=error").
-		Funcs(ApplierFuncMap()).
-		Funcs(sprig.TxtFuncMap()).
-		Parse(string(b))
+	tmpl, err := tp.tmpl.Parse(string(b))
 	if err != nil {
 		return nil, err
 	}
+
 	err = tmpl.Execute(&buf, values)
 	if err != nil {
 		return nil, err
 	}
+
 	klog.V(5).Infof("templated:\n%s\n---", buf.String())
 	trim := strings.TrimSuffix(buf.String(), "\n")
 	trim = strings.TrimSpace(trim)
@@ -247,18 +258,6 @@ func (tp *TemplateProcessor) TemplateBytes(
 		return nil, nil
 	}
 	return buf.Bytes(), err
-}
-
-// Deprecated: Use TemplateResourcesInPathYaml
-// TemplateAssetsInPathYaml returns all assets in a path using the provided config.
-// The assets are sorted following the order defined in variable kindsOrder
-func (tp *TemplateProcessor) TemplateAssetsInPathYaml(
-	path string,
-	excluded []string,
-	recursive bool,
-	values interface{},
-) ([][]byte, error) {
-	return tp.TemplateResourcesInPathYaml(path, excluded, recursive, values)
 }
 
 // TemplateAssetsInPathYaml returns all assets in a path using the provided config.
@@ -315,6 +314,7 @@ func (tp *TemplateProcessor) AssetNamesInPath(
 		if isExcluded(name, excluded) {
 			continue
 		}
+		klog.V(5).Infof("filepath.Dir(%s)=%s", name, filepath.Dir(name))
 		if (recursive && strings.HasPrefix(filepath.Join(filepath.Dir(name), name), path)) ||
 			(!recursive && filepath.Dir(name) == path) {
 			results = append(results, name)
@@ -364,17 +364,6 @@ func (tp *TemplateProcessor) Assets(
 	return payloads, nil
 }
 
-// Deprecated: Use TemplateResourcesInPathUnstructured
-// TemplateAssetsInPathUnstructured returns all assets in a []unstructured.Unstructured and sort them
-// The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
-func (tp *TemplateProcessor) TemplateAssetsInPathUnstructured(
-	path string,
-	excluded []string,
-	recursive bool,
-	values interface{}) (assets []*unstructured.Unstructured, err error) {
-	return tp.TemplateResourcesInPathUnstructured(path, excluded, recursive, values)
-}
-
 // TemplateResourcesInPathUnstructured returns all assets in a []unstructured.Unstructured and sort them
 // The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
 func (tp *TemplateProcessor) TemplateResourcesInPathUnstructured(
@@ -392,15 +381,6 @@ func (tp *TemplateProcessor) TemplateResourcesInPathUnstructured(
 		return nil, err
 	}
 	return us, nil
-}
-
-// Deprecated: Use TemplateResourcesUnstructured
-// TemplateAssetsUnstructured returns all assets in a []unstructured.Unstructured and sort them
-// The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
-func (tp *TemplateProcessor) TemplateAssetsUnstructured(
-	templateNames []string,
-	values interface{}) (assets []*unstructured.Unstructured, err error) {
-	return tp.TemplateResourcesUnstructured(templateNames, values)
 }
 
 // TemplateResourcesUnstructured returns all assets in a []unstructured.Unstructured and sort them
@@ -423,61 +403,39 @@ func (tp *TemplateProcessor) TemplateResourcesUnstructured(
 	return us, nil
 }
 
-// Deprecated: Please use another templating methods with a YamlStringReader
-// TemplateBytesUnstructured returns all assets defined in a []byte (separted by the delimiter)
-// in a []unstructured.Unstructured and sort them
-// The []unstructured.Unstructured are sorted following the order defined in variable kindsOrder
-// However the resources is a parameter it requires a reader to define the ToJSON method.
-// Please use another method with a YamlStringReader
-func (tp *TemplateProcessor) TemplateBytesUnstructured(
-	resources []byte,
-	values interface{},
-	delimiter string) (us []*unstructured.Unstructured, err error) {
-	templatedAssets, err := tp.TemplateBytes(resources, values)
-	if err != nil {
-		return nil, err
-	}
-	assetsString := string(templatedAssets)
-	ys := strings.Split(assetsString, delimiter)
-	templatedAssetsArray := make([][]byte, 0)
-	for _, y := range ys {
-		if len(strings.TrimSpace(y)) == 0 {
-			continue
-		}
-		templatedAssetsArray = append(templatedAssetsArray, []byte(y))
-	}
-	us, err = tp.BytesArrayToUnstructured(templatedAssetsArray)
-	if err != nil {
-		return nil, err
-	}
-	tp.sortUnstructuredForApply(us)
-	return us, nil
-
-}
-
 //BytesArrayToUnstructured transform a [][]byte to an []*unstructured.Unstructured using the TemplateProcessor reader
 func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*unstructured.Unstructured, err error) {
-	us = make([]*unstructured.Unstructured, len(assets))
-	for i, b := range assets {
-		u, err := tp.BytesToUnstructured(b)
-		if err != nil {
-			return nil, err
+	us = make([]*unstructured.Unstructured, 0)
+	for _, b := range assets {
+		// Maybe the asset contains multiple assets separated by "---\n"
+		bb := ConvertStringToArrayOfBytes(string(b), tp.options.Delimiter)
+		for _, b := range bb {
+			u, err := tp.BytesToUnstructured(b)
+			if err != nil {
+				return nil, err
+			}
+			us = append(us, u)
 		}
-		us[i] = u
 	}
 	return us, nil
 }
 
 //BytesToUnstructured transform a []byte to an *unstructured.Unstructured using the TemplateProcessor reader
 func (tp *TemplateProcessor) BytesToUnstructured(asset []byte) (*unstructured.Unstructured, error) {
+	klog.V(5).Infof("assets:\n%s", string(asset))
 	j, err := tp.reader.ToJSON(asset)
 	if err != nil {
 		return nil, err
 	}
 	u := &unstructured.Unstructured{}
-	err = u.UnmarshalJSON(j)
+	_, _, err = unstructured.UnstructuredJSONScheme.Decode(j, nil, u)
+	klog.V(5).Infof("runtime.IsMissingKind(err):%v\nu:\n%v", runtime.IsMissingKind(err), u)
 	if err != nil {
-		return nil, err
+		klog.V(5).Infof("Error: %s", err)
+		//In case it is not a kube yaml
+		if !runtime.IsMissingKind(err) {
+			return nil, err
+		}
 	}
 	return u, nil
 }
@@ -521,7 +479,7 @@ func (tp *TemplateProcessor) weight(u *unstructured.Unstructured) int {
 
 func ConvertArrayOfBytesToString(in [][]byte) (out string) {
 	ss := ConvertArrayOfBytesToArrayOfString(in)
-	out = fmt.Sprint(strings.Join(ss, "---\n"))
+	out = fmt.Sprint(strings.Join(ss, KubernetesYamlsDelimiterString))
 	return out
 }
 
@@ -529,6 +487,19 @@ func ConvertArrayOfBytesToArrayOfString(in [][]byte) (out []string) {
 	out = make([]string, 0)
 	for _, o := range in {
 		out = append(out, string(o))
+	}
+	return out
+}
+
+func ConvertStringToArrayOfBytes(in, delimiter string) (out [][]byte) {
+	re := regexp.MustCompile(delimiter)
+	ss := re.Split(in, -1)
+	out = make([][]byte, 0)
+	for _, s := range ss {
+		trim := strings.TrimSuffix(s, "\n")
+		if len(strings.TrimSpace(trim)) != 0 {
+			out = append(out, []byte(s))
+		}
 	}
 	return out
 }

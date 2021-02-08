@@ -2,13 +2,13 @@ package templateprocessor
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/ghodss/yaml"
+	"k8s.io/klog"
 )
-
-const KubernetesYamlsDelimiter = "---\n"
 
 type YamlStringReader struct {
 	Yamls []string
@@ -42,7 +42,12 @@ func (r *YamlStringReader) AssetNames() ([]string, error) {
 func (*YamlStringReader) ToJSON(
 	b []byte,
 ) ([]byte, error) {
-	return yaml.YAMLToJSON(b)
+	b, err := yaml.YAMLToJSON(b)
+	if err != nil {
+		klog.Errorf("err:%s\nyaml:\n%s", err, string(b))
+		return nil, err
+	}
+	return b, nil
 }
 
 //NewYamlStringReader returns a YamlStringReader
@@ -53,7 +58,9 @@ func NewYamlStringReader(
 	delimiter string,
 ) *YamlStringReader {
 	yamlsArray := make([]string, 0)
-	for _, y := range strings.Split(yamls, delimiter) {
+	re := regexp.MustCompile(delimiter)
+	ss := re.Split(yamls, -1)
+	for _, y := range ss {
 		if strings.TrimSpace(y) != "" {
 			yamlsArray = append(yamlsArray, strings.TrimSpace(y))
 		}
