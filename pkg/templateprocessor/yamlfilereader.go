@@ -6,53 +6,75 @@ import (
 	"path/filepath"
 
 	"github.com/ghodss/yaml"
+	"k8s.io/klog"
 )
 
 type YamlFileReader struct {
-	rootDirectory string
+	path     string
+	fileName string
 }
 
 var _ TemplateReader = &YamlFileReader{
-	rootDirectory: "",
+	path:     "",
+	fileName: "",
 }
 
 func (r *YamlFileReader) Asset(
 	name string,
 ) ([]byte, error) {
-	return ioutil.ReadFile(filepath.Clean(filepath.Join(r.rootDirectory, name)))
+	return ioutil.ReadFile(filepath.Clean(filepath.Join(r.path, name)))
 }
 
 func (r *YamlFileReader) AssetNames() ([]string, error) {
 	keys := make([]string, 0)
-	_, err := os.Open(r.rootDirectory)
-	if err != nil {
-		return keys, err
-	}
-	err = filepath.Walk(r.rootDirectory, func(path string, info os.FileInfo, err error) error {
-		if info != nil {
-			if !info.IsDir() {
-				newPath, err := filepath.Rel(r.rootDirectory, path)
-				if err != nil {
-					return err
+	var err error
+	if r.fileName == "" {
+		err = filepath.Walk(r.path, func(path string, info os.FileInfo, err error) error {
+			if info != nil {
+				if !info.IsDir() {
+					newPath, err := filepath.Rel(r.path, path)
+					if err != nil {
+						return err
+					}
+					keys = append(keys, newPath)
 				}
-				keys = append(keys, newPath)
 			}
+			return nil
+		})
+	} else {
+		helpersFile := filepath.Join(filepath.Base(r.path), "_helpers.tpl")
+		if _, err := os.Stat(helpersFile); err == nil {
+			keys = append(keys, "_helpers.tpl")
 		}
-		return nil
-	})
+		keys = append(keys, r.fileName)
+	}
 	return keys, err
 }
 
 func (*YamlFileReader) ToJSON(
 	b []byte,
 ) ([]byte, error) {
-	return yaml.YAMLToJSON(b)
+	b, err := yaml.YAMLToJSON(b)
+	if err != nil {
+		klog.Errorf("err:%s\nyaml:\n%s", err, string(b))
+		return nil, err
+	}
+	return b, nil
 }
 
 func NewYamlFileReader(
-	rootDirectory string,
+	path string,
 ) *YamlFileReader {
-	return &YamlFileReader{
-		rootDirectory: rootDirectory,
+	reader := &YamlFileReader{
+		path: path,
 	}
+	fi, err := os.Stat(path)
+	if err != nil {
+		klog.Fatal(err)
+	}
+	if !fi.Mode().IsDir() {
+		reader.path = filepath.Dir(path)
+		reader.fileName = filepath.Base(path)
+	}
+	return reader
 }

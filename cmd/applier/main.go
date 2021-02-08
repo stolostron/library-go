@@ -20,7 +20,6 @@ import (
 type Values map[string]interface{}
 
 type Option struct {
-	inFile         string
 	outFile        string
 	directory      string
 	valuesPath     string
@@ -30,16 +29,16 @@ type Option struct {
 	delete         bool
 	timeout        int
 	force          bool
+	silent         bool
 }
 
 func main() {
 	var o Option
 	klog.InitFlags(nil)
-	flag.StringVar(&o.inFile, "f", "", "The file to process")
 	flag.StringVar(&o.outFile, "o", "",
 		"Output file. If set nothing will be applied but a file will be generate "+
 			"which you can apply later with 'kubectl <create|apply|delete> -f")
-	flag.StringVar(&o.directory, "d", ".", "The directory containing the templates, default '.'")
+	flag.StringVar(&o.directory, "d", "", "The directory or file containing the template(s)")
 	flag.StringVar(&o.valuesPath, "values", "", "The directory containing the templates")
 	flag.StringVar(&o.kubeconfigPath, "k", "", "The kubeconfig file")
 	flag.BoolVar(&o.dryRun, "dry-run", false, "if set only the rendered yaml will be shown, default false")
@@ -48,6 +47,7 @@ func main() {
 		"if set only the resource defined in the yamls will be deleted, default false")
 	flag.IntVar(&o.timeout, "t", 5, "Timeout in second to apply one resource, default 5 sec")
 	flag.BoolVar(&o.force, "force", false, "If set, the finalizers will be removed before delete")
+	flag.BoolVar(&o.silent, "s", false, "If set the applier will run silently")
 	flag.Parse()
 
 	err := checkOptions(&o)
@@ -62,28 +62,30 @@ func main() {
 		os.Exit(1)
 	}
 	if o.dryRun {
-		fmt.Println("Dryrun successfully executed")
+		if !o.silent {
+			fmt.Println("Dryrun successfully executed")
+		}
 	} else {
 		if o.outFile != "" {
-			fmt.Println("Successfully processed")
+			if !o.silent {
+				fmt.Println("Successfully generated")
+			}
 		} else {
-			fmt.Println("Sccessfully applied")
+			if !o.silent {
+				fmt.Println("Sccessfully applied")
+			}
 		}
 	}
 }
 
 func checkOptions(o *Option) error {
-	klog.V(2).Infof("-f: %s", o.inFile)
 	klog.V(2).Infof("-d: %s", o.directory)
-	if o.inFile != "" {
-		o.directory = ""
-	}
-	if o.inFile != "" && o.directory != "" {
-		return fmt.Errorf("-f and -d are incompatible")
+	if o.directory == "" {
+		return fmt.Errorf("-d must be set")
 	}
 	if o.outFile != "" &&
 		(o.dryRun || o.delete || o.force) {
-		return fmt.Errorf("-o is not compatible with -d, delete or force")
+		return fmt.Errorf("-o is not compatible with -dry-run, delete or force")
 	}
 	return nil
 }
@@ -125,42 +127,19 @@ func apply(o Option) (err error) {
 
 	klog.V(5).Infof("values:\n%v", values)
 
+	templateReader := templateprocessor.NewYamlFileReader(o.directory)
 	if o.outFile != "" {
-		if o.inFile != "" {
-			b, err := ioutil.ReadFile(filepath.Clean(o.inFile))
-			if err != nil {
-				return err
-			}
-			out, err := templateprocessor.TemplateBytes(b, values)
-			if err != nil {
-				return err
-			}
-			klog.V(1).Infof("result:\n%s", string(out))
-			return ioutil.WriteFile(filepath.Clean(o.outFile), out, 0600)
-		} else {
-			templateReader := templateprocessor.NewYamlFileReader(o.directory)
-			templateProcessor, err := templateprocessor.NewTemplateProcessor(templateReader, &templateprocessor.Options{})
-			if err != nil {
-				return err
-			}
-			outV, err := templateProcessor.TemplateResourcesInPathYaml("", []string{}, true, values)
-			if err != nil {
-				return err
-			}
-			out := templateprocessor.ConvertArrayOfBytesToString(outV)
-			klog.V(1).Infof("result:\n%s", out)
-			return ioutil.WriteFile(filepath.Clean(o.outFile), []byte(templateprocessor.ConvertArrayOfBytesToString(outV)), 0600)
-		}
-	}
-	var templateReader templateprocessor.TemplateReader
-	if o.inFile != "" {
-		b, err := ioutil.ReadFile(filepath.Clean(o.inFile))
+		templateProcessor, err := templateprocessor.NewTemplateProcessor(templateReader, &templateprocessor.Options{})
 		if err != nil {
 			return err
 		}
-		templateReader = templateprocessor.NewYamlStringReader(string(b), templateprocessor.KubernetesYamlsDelimiter)
-	} else {
-		templateReader = templateprocessor.NewYamlFileReader(o.directory)
+		outV, err := templateProcessor.TemplateResourcesInPathYaml("", []string{}, true, values)
+		if err != nil {
+			return err
+		}
+		out := templateprocessor.ConvertArrayOfBytesToString(outV)
+		klog.V(1).Infof("result:\n%s", out)
+		return ioutil.WriteFile(filepath.Clean(o.outFile), []byte(templateprocessor.ConvertArrayOfBytesToString(outV)), 0600)
 	}
 	client, err := libgoclient.NewDefaultClient(o.kubeconfigPath, crclient.Options{})
 	if err != nil {
