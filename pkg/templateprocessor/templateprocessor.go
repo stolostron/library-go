@@ -273,6 +273,10 @@ func (tp *TemplateProcessor) TemplateResourcesInPathYaml(
 		return nil, err
 	}
 
+	return ToYAMLsUnstructured(us)
+}
+
+func ToYAMLsUnstructured(us []*unstructured.Unstructured) ([][]byte, error) {
 	results := make([][]byte, len(us))
 
 	for i, u := range us {
