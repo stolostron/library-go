@@ -50,13 +50,23 @@ type Options struct {
 	//Override the default order, it contains the kind order which the templateProcess must use to sort all resources.
 	CreateUpdateKindsOrder KindsOrder
 	DeleteKindsOrder       KindsOrder
+	MissingKeyType         MissingKeyType
 }
 
 type SortType string
 
+type MissingKeyType string
+
 const (
 	sortTypeCreateUpdate SortType = "create-update"
 	sortTypeDelete       SortType = "delete"
+)
+
+const (
+	MissingKeyTypeZero    MissingKeyType = "missingkey=zero"
+	MissingKeyTypeError   MissingKeyType = "missingkey=error"
+	MissingKeyTypeInvalid MissingKeyType = "missingkey=invalid"
+	MissingKeyTypeDefault MissingKeyType = "missingkey=default"
 )
 
 type KindsOrder []string
@@ -164,6 +174,9 @@ func NewTemplateProcessor(
 	if options.DelimiterString == "" {
 		options.DelimiterString = KubernetesYamlsDelimiterString
 	}
+	if options.MissingKeyType == "" {
+		options.MissingKeyType = MissingKeyTypeZero
+	}
 	re, err := regexp.Compile(options.Delimiter)
 	if err != nil {
 		return nil, err
@@ -176,7 +189,7 @@ func NewTemplateProcessor(
 				options.DelimiterString)
 	}
 	tmpl := template.New("yamls").
-		Option("missingkey=error").
+		Option(string(options.MissingKeyType)).
 		Funcs(ApplierFuncMap())
 	tmpl = tmpl.Funcs(TemplateFuncMap(tmpl)).
 		Funcs(sprig.TxtFuncMap())
