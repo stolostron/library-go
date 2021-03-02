@@ -1,3 +1,5 @@
+# Copyright Contributors to the Open Cluster Management project
+
 #!/bin/bash -e
 
 _script_dir=$(dirname "$0")

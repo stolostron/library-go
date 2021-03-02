@@ -1,3 +1,5 @@
+[comment]: # ( Copyright Contributors to the Open Cluster Management project )
+
 # Webhook
 
 This package contains `WebHookWireUp` Object, which provides a convenient way to
