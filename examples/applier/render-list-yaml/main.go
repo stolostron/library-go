@@ -1,3 +1,5 @@
+// Copyright Contributors to the Open Cluster Management project
+
 //Package main: This program shows how to create resources based on yamls template located in
 //the same directory or bindata or array of string.
 package main

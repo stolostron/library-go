@@ -1,4 +1,5 @@
 #!/bin/bash -e
+# Copyright Contributors to the Open Cluster Management project
 
 _script_dir=$(dirname "$0")
 mkdir -p test/unit/coverage

@@ -1,3 +1,5 @@
+[comment]: # ( Copyright Contributors to the Open Cluster Management project )
+
 # Introduction to template
 
 The file [templateprocessor](../pkg/templateprocessor) contains an number of methods allowing you to render template yaml files. 

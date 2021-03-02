@@ -1,3 +1,5 @@
+// Copyright Contributors to the Open Cluster Management project
+
 package templateprocessor
 
 import (
@@ -27,7 +29,9 @@ func TestYamlFileReader_Asset(t *testing.T) {
 			args: args{
 				name: "filereader.yaml",
 			},
-			want: []byte(`apiVersion: fake/v1
+			want: []byte(`# Copyright Contributors to the Open Cluster Management project
+
+apiVersion: fake/v1
 kind: Fake
 metadata:
   name: {{ .Values }}`),
@@ -45,7 +49,7 @@ metadata:
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("YamlFileReader.Asset() = %v, want %v", got, tt.want)
+				t.Errorf("YamlFileReader.Asset() = %v, want %v", string(got), string(tt.want))
 			}
 		})
 	}

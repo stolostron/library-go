@@ -1,4 +1,5 @@
-# Security Response
+[comment]: # ( Copyright Contributors to the Open Cluster Management project )
 
-If you've found a security issue that you'd like to disclose confidentially please contact Red Hat's Product Security team. 
+# Security Response
+If you find a security issue that you want to address confidentially, contact the Red Hat product Security team. 
 Details at https://access.redhat.com/security/team/contact

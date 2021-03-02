@@ -1,3 +1,5 @@
+# Copyright Contributors to the Open Cluster Management project
+
 language: go
 
 go:
@@ -5,7 +7,7 @@ go:
 
 branches:
   only:
-    - master
+    - main
     - /^release-[0-9]+\..*$/
 
 addons:

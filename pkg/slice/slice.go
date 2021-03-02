@@ -1,3 +1,5 @@
+// Copyright Contributors to the Open Cluster Management project
+
 package slice
 
 // AppendIfDNE append stringToAppend to stringSlice if stringToAppend does not already exist in stringSlice

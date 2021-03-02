@@ -1,4 +1,6 @@
-# library-go
+[comment]: # ( Copyright Contributors to the Open Cluster Management project )
+
+# [library-go](#getting-started)
 This project contains a number of Kubernetes Go utilities like methods:
 
 - To apply templated resources [applier.md](./docs/applier.md). The generated yamls are automatically sorted.
