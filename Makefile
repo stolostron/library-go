@@ -10,7 +10,7 @@ INSTALL_DEPENDENCIES ?= ${SCRIPTS_PATH}/install-dependencies.sh
 UNIT_TEST_COMMAND ?= ${SCRIPTS_PATH}/run-unit-tests.sh
 
 export GOPACKAGES ?= ./pkg/...
-export KUBEBUILDER_HOME := /usr/local/bin/kubebuilder
+export KUBEBUILDER_HOME := /opt/kubebuilder
 export KUBEBUILDER_ASSETS := ${KUBEBUILDER_HOME}/bin
 export PATH := ${PATH}:${KUBEBUILDER_ASSETS}
 
