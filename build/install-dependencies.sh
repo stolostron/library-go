@@ -22,14 +22,7 @@ if ! which kubebuilder > /dev/null; then
 
    # move to a long-term location and put it on your path
    # (you'll need to set the KUBEBUILDER_ASSETS env var if you put it somewhere else)
-   echo "OPENSHIFT_CI: "$OPENSHIFT_CI
-   if [ "$OPENSHIFT_CI" == "true" ]; then
-   #   mkdir -p $KUBEBUILDER_HOME
-     mv /tmp/kubebuilder_"$KubeBuilderVersion"_"${_OS}"_"${_ARCH}" $KUBEBUILDER_HOME
-   else 
-   #   sudo mkdir -p $KUBEBUILDER_HOME
-     sudo mv /tmp/kubebuilder_"$KubeBuilderVersion"_"${_OS}"_"${_ARCH}" $KUBEBUILDER_HOME
-   fi
+   sudo mv /tmp/kubebuilder_"$KubeBuilderVersion"_"${_OS}"_"${_ARCH}" $KUBEBUILDER_HOME
 fi
 
 # Build tools
