@@ -23,7 +23,12 @@ if ! which kubebuilder > /dev/null; then
 
    # move to a long-term location and put it on your path
    # (you'll need to set the KUBEBUILDER_ASSETS env var if you put it somewhere else)
-   sudo mv /tmp/kubebuilder_"$KubeBuilderVersion"_"${_OS}"_"${_ARCH}" /usr/local/kubebuilder
+   echo "PROW_JOB_ID: "$PROW_JOB_ID
+   if [ -z $PROW_JOB_ID ]; then
+     sudo mv /tmp/kubebuilder_"$KubeBuilderVersion"_"${_OS}"_"${_ARCH}" /usr/local/kubebuilder
+   else 
+     mv /tmp/kubebuilder_"$KubeBuilderVersion"_"${_OS}"_"${_ARCH}" /usr/local/kubebuilder
+   fi
 fi
 
 # Build tools
