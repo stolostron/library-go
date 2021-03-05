@@ -110,4 +110,4 @@ functional-test-full:
 
 .PHONY: kind-cluster-setup
 kind-cluster-setup: 
-	@echo "No setup to do"
+	@echo "No setup to be done"
