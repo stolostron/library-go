@@ -10,6 +10,9 @@ INSTALL_DEPENDENCIES ?= ${SCRIPTS_PATH}/install-dependencies.sh
 UNIT_TEST_COMMAND ?= ${SCRIPTS_PATH}/run-unit-tests.sh
 
 export GOPACKAGES ?= ./pkg/...
+export KUBEBUILDER_HOME := /usr/local/kubebuilder
+
+export PATH := ${PATH}:${KUBEBUILDER_HOME}/bin
 
 .PHONY: deps
 deps:
@@ -22,6 +25,7 @@ test:
 	  echo "Please install kubebuilder, run 'make deps'"; \
 	  echo "then run"; \
 	  echo "export PATH=\$$PATH:/usr/local/kubebuilder/bin"; \
+	  exit 1; \
 	else \
 	  $(UNIT_TEST_COMMAND); \
 	fi

@@ -17,7 +17,7 @@ The resources are sorted in order to be applied in a kubernetes environment usin
 
 ## command-line
 
-A command-line is available to apply yaml files in a given directory. To generate it run `make build`, the `apply` executable will be in the `bin` directory.
+A command-line is available to apply yaml files in a given directory. To generate it run `make build`, the `applier` executable will be in the `bin` directory.
 ```
 applier -d <templates_directory> [-o <output_file>] [-k <kubeconfig_file_path>] [-dry-run] [-v n] [-values <values_file_path>] 
 ```
