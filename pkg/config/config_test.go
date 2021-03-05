@@ -27,6 +27,11 @@ func TestLoadConfig(t *testing.T) {
 		}
 	}
 
+	inCluster := false
+	if _, err = rest.InClusterConfig(); err == nil {
+		inCluster = true
+	}
+
 	config, err := clientcmd.NewDefaultClientConfig(
 		*apiConfig,
 		&clientcmd.ConfigOverrides{}).ClientConfig()
@@ -85,14 +90,14 @@ func TestLoadConfig(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Succeed user",
+			name: "Succeed user or InCluster",
 			args: args{
 				url:        "",
 				kubeconfig: "",
 				context:    "",
 			},
 			want:    nil,
-			wantErr: !userconfigexists,
+			wantErr: !(userconfigexists || inCluster),
 		},
 	}
 	for _, tt := range tests {
