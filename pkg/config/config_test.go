@@ -26,11 +26,13 @@ func TestLoadConfig(t *testing.T) {
 			userconfigexists = false
 		}
 	}
+	t.Logf("User kubeconfig exists: %t", userconfigexists)
 
 	inCluster := false
 	if _, err = rest.InClusterConfig(); err == nil {
 		inCluster = true
 	}
+	t.Logf("Running in a cluster: %t", inCluster)
 
 	config, err := clientcmd.NewDefaultClientConfig(
 		*apiConfig,
