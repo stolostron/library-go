@@ -10,8 +10,6 @@ TMP_FILE="tmp_file"
 
 ALL_FILES=$(find . -name "*")
 
-DRY_RUN=true
-
 COMMUNITY_COPY_HEADER_FILE="$PWD/build/copyright-header.txt"
 
 if [ ! -f $COMMUNITY_COPY_HEADER_FILE ]; then
@@ -19,18 +17,12 @@ if [ ! -f $COMMUNITY_COPY_HEADER_FILE ]; then
   exit 1
 fi
 
-RH_COPY_HEADER="Copyright (c) 2020 Red Hat, Inc."
-
 COMMUNITY_COPY_HEADER_STRING=$(cat $COMMUNITY_COPY_HEADER_FILE)
 
 echo "Desired copyright header is: $COMMUNITY_COPY_HEADER_STRING"
 
 # NOTE: Only use one newline or javascript and typescript linter/prettier will complain about the extra blank lines
 NEWLINE="\n"
-
-if [[ "$DRY_RUN" == true ]]; then
-   echo "---- Beginning dry run ----"
-fi
 
 for FILE in $ALL_FILES
 do
@@ -80,35 +72,6 @@ do
 
         if grep -q "$COMMUNITY_HEADER_AS_COMMENT" "$FILE"; then
             echo "\t- Header already exists; skipping"
-        else
-
-            if [[ "$DRY_RUN" == true ]]; then
-                echo -e "\t- [DRY RUN] Will add Community copyright header to file"
-                continue
-            fi
-
-            ALL_COPYRIGHTS=""
-
-            RH_COPY_HEADER_AS_COMMENT="$COMMENT_START$RH_COPY_HEADER$COMMENT_END"
-
-            if grep -q "$RH_COPY_HEADER_AS_COMMENT" "$FILE"; then
-                ALL_COPYRIGHTS="$ALLCOPYRIGHTS$RH_COPY_HEADER_AS_COMMENT$NEWLINE"
-                grep -v "$RH_COPY_HEADER_AS_COMMENT" $FILE > $TMP_FILE
-                mv $TMP_FILE  $FILE
-                echo -e "\t- Has Red Hat copyright header"
-            fi
-
-            ALL_COPYRIGHTS="$ALL_COPYRIGHTS$COMMUNITY_HEADER_AS_COMMENT$NEWLINE"
-            echo -e $ALL_COPYRIGHTS > $TMP_FILE
-            cat $FILE >> $TMP_FILE
-            mv $TMP_FILE $FILE
-
-            # Make sure shell script files are still executable
-            if  [[ $FILE == *".sh" ]]; then
-              chmod 755 $FILE
-            fi
-
-            echo -e "\t- Adding Community copyright header to file"
         fi
     else
         echo -e "\t- DO NOTHING"

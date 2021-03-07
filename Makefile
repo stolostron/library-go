@@ -22,7 +22,7 @@ deps:
 
 .PHONE: check
 check:
-	build/set-copyright.sh
+	build/check-copyright.sh
 
 .PHONY: test
 ## Runs go unit tests
