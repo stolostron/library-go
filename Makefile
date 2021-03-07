@@ -9,6 +9,8 @@ INSTALL_DEPENDENCIES ?= ${SCRIPTS_PATH}/install-dependencies.sh
 # The command to run to execute unit tests
 UNIT_TEST_COMMAND ?= ${SCRIPTS_PATH}/run-unit-tests.sh
 
+BEFORE_SCRIPT := $(shell build/before-make.sh)
+
 export GOPACKAGES ?= ./pkg/...
 export KUBEBUILDER_HOME := /usr/local/kubebuilder
 
@@ -17,6 +19,10 @@ export PATH := ${PATH}:${KUBEBUILDER_HOME}/bin
 .PHONY: deps
 deps:
 	$(INSTALL_DEPENDENCIES)
+
+.PHONE: check
+check:
+	build/set-copyright.sh
 
 .PHONY: test
 ## Runs go unit tests
