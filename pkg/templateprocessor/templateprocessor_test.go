@@ -500,3 +500,158 @@ func TestTemplateProcessor_helpertpl(t *testing.T) {
 		t.Errorf("Malformed %v", u)
 	}
 }
+
+func TestTemplateProcessor_BytesToUnstructured(t *testing.T) {
+	var asset = []byte(``)
+	tpr := NewYamlStringReader(string(asset), KubernetesYamlsDelimiter)
+	type fields struct {
+		reader  TemplateReader
+		options *Options
+	}
+	type args struct {
+		asset []byte
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *unstructured.Unstructured
+		wantErr bool
+	}{
+		{
+			name: "success",
+			fields: fields{
+				reader:  tpr,
+				options: &Options{},
+			},
+			args: args{
+				asset: []byte(`---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: myName
+  namespace: myNamespace
+---
+`),
+			},
+			want: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ServiceAccount",
+					"metadata": map[string]interface{}{
+						"name":      "myName",
+						"namespace": "myNamespace",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "success empty",
+			fields: fields{
+				reader:  tpr,
+				options: &Options{},
+			},
+			args: args{
+				asset: []byte(`---
+#apiVersion: v1
+#kind: ServiceAccount
+#metadata:
+#  name: myName
+#  namespace: myNamespace
+---
+`),
+			},
+			want:    &unstructured.Unstructured{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tp, _ := NewTemplateProcessor(
+				tt.fields.reader,
+				tt.fields.options)
+			got, err := tp.BytesToUnstructured(tt.args.asset)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("TemplateProcessor.BytesToUnstructured() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("TemplateProcessor.BytesToUnstructured() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTemplateProcessor_BytesArrayToUnstructured(t *testing.T) {
+	tpr := NewYamlStringReader(string(assetsB), KubernetesYamlsDelimiter)
+	type fields struct {
+		reader  TemplateReader
+		options *Options
+	}
+	type args struct {
+		assets [][]byte
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantUs  []*unstructured.Unstructured
+		wantErr bool
+	}{
+		{
+			name: "success, one is stripped because empty",
+			fields: fields{
+				reader:  tpr,
+				options: &Options{},
+			},
+			args: args{
+				assets: [][]byte{
+					[]byte(`---
+#apiVersion: v1
+#kind: ServiceAccount
+#metadata:
+#  name: myName
+#  namespace: myNamespace
+---
+`),
+					[]byte(`---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: myName
+  namespace: myNamespace
+---
+`)},
+			},
+			wantUs: []*unstructured.Unstructured{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "v1",
+						"kind":       "ServiceAccount",
+						"metadata": map[string]interface{}{
+							"name":      "myName",
+							"namespace": "myNamespace",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tp, _ := NewTemplateProcessor(
+				tt.fields.reader,
+				tt.fields.options)
+			gotUs, err := tp.BytesArrayToUnstructured(tt.args.assets)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("TemplateProcessor.BytesArrayToUnstructured() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotUs, tt.wantUs) {
+				t.Errorf("TemplateProcessor.BytesArrayToUnstructured() = %v, want %v", gotUs, tt.wantUs)
+			}
+		})
+	}
+}

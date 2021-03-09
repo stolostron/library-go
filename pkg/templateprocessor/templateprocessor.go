@@ -433,7 +433,9 @@ func (tp *TemplateProcessor) BytesArrayToUnstructured(assets [][]byte) (us []*un
 			if err != nil {
 				return nil, err
 			}
-			us = append(us, u)
+			if u.Object != nil {
+				us = append(us, u)
+			}
 		}
 	}
 	return us, nil
