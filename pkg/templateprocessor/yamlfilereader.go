@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog"
 )
 
+//YamlFileReader defines a reader for yaml files
 type YamlFileReader struct {
 	path     string
 	fileName string
@@ -21,12 +22,14 @@ var _ TemplateReader = &YamlFileReader{
 	fileName: "",
 }
 
+//Asset returns an asset
 func (r *YamlFileReader) Asset(
 	name string,
 ) ([]byte, error) {
 	return ioutil.ReadFile(filepath.Clean(filepath.Join(r.path, name)))
 }
 
+//AssetNames returns the name of all assets
 func (r *YamlFileReader) AssetNames() ([]string, error) {
 	keys := make([]string, 0)
 	var err error
@@ -53,6 +56,7 @@ func (r *YamlFileReader) AssetNames() ([]string, error) {
 	return keys, err
 }
 
+//ToJSON converts to JSON
 func (*YamlFileReader) ToJSON(
 	b []byte,
 ) ([]byte, error) {
@@ -64,6 +68,7 @@ func (*YamlFileReader) ToJSON(
 	return b, nil
 }
 
+//NewYamlFileReader constructs a new YamlFileReader
 func NewYamlFileReader(
 	path string,
 ) *YamlFileReader {

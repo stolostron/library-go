@@ -1,7 +1,5 @@
 # Copyright Contributors to the Open Cluster Management project
 
-
-
 SCRIPTS_PATH ?= build
 
 # Install software dependencies
@@ -11,6 +9,9 @@ UNIT_TEST_COMMAND ?= ${SCRIPTS_PATH}/run-unit-tests.sh
 
 BEFORE_SCRIPT := $(shell build/before-make.sh)
 
+export PROJECT_DIR            = $(shell 'pwd')
+export PROJECT_NAME			  = $(shell basename ${PROJECT_DIR})
+	
 export GOPACKAGES ?= ./pkg/...
 export KUBEBUILDER_HOME := /usr/local/kubebuilder
 

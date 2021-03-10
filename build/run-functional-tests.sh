@@ -7,7 +7,7 @@ set -e
 CURR_FOLDER_PATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 KIND_KUBECONFIG="${CURR_FOLDER_PATH}/../kind_kubeconfig.yaml"
 
-export KIND_CLUSTER_NAME=library-go-functional-test
+export CLUSTER_NAME=$PROJECT_NAME-functional-test
 export KUBECONFIG=${KIND_KUBECONFIG}
 
 export FUNCT_TEST_TMPDIR="${CURR_FOLDER_PATH}/../test/functional/tmp"
@@ -35,10 +35,10 @@ mkdir -p "$FUNCT_TEST_TMPDIR"
 mkdir -p "$FUNCT_TEST_TMPDIR/kind-config"
 
 echo "creating cluster"
-kind create cluster --name ${KIND_CLUSTER_NAME}
+kind create cluster --name ${CLUSTER_NAME}
 
 # setup kubeconfig
-kind get kubeconfig --name ${KIND_CLUSTER_NAME} > ${KIND_KUBECONFIG}
+kind get kubeconfig --name ${CLUSTER_NAME} > ${KIND_KUBECONFIG}
 
 # create namespace
 
@@ -49,4 +49,4 @@ make kind-cluster-setup
 make functional-test
 
 echo "delete cluster"
-kind delete cluster --name ${KIND_CLUSTER_NAME}
+kind delete cluster --name ${CLUSTER_NAME}

@@ -12,6 +12,7 @@ import (
 	"k8s.io/klog"
 )
 
+//YamlStringReader defines a reader for yaml string
 type YamlStringReader struct {
 	Yamls []string
 }
@@ -20,6 +21,7 @@ var _ TemplateReader = &YamlStringReader{
 	Yamls: []string{""},
 }
 
+//Asset returns an asset
 func (r *YamlStringReader) Asset(
 	name string,
 ) ([]byte, error) {
@@ -33,6 +35,7 @@ func (r *YamlStringReader) Asset(
 	return []byte(r.Yamls[i]), nil
 }
 
+//AssetNames returns the name of all assets
 func (r *YamlStringReader) AssetNames() ([]string, error) {
 	keys := make([]string, 0)
 	for i := range r.Yamls {
@@ -41,6 +44,7 @@ func (r *YamlStringReader) AssetNames() ([]string, error) {
 	return keys, nil
 }
 
+//ToJSON converts to JSON
 func (*YamlStringReader) ToJSON(
 	b []byte,
 ) ([]byte, error) {

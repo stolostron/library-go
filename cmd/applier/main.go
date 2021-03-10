@@ -74,7 +74,7 @@ func main() {
 			}
 		} else {
 			if !o.silent {
-				fmt.Println("Sccessfully applied")
+				fmt.Println("Successfully applied")
 			}
 		}
 	}
