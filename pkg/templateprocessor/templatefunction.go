@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog"
 )
 
+//ApplierFuncMap adds the function map
 func ApplierFuncMap() template.FuncMap {
 	return template.FuncMap(GenericFuncMap())
 }
@@ -43,6 +44,7 @@ func encodeBase64(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
+//TemplateFuncMap generates function map for "include"
 func TemplateFuncMap(tmpl *template.Template) (funcMap template.FuncMap) {
 	funcMap = make(template.FuncMap, 0)
 	funcMap["include"] = func(name string, data interface{}) (string, error) {

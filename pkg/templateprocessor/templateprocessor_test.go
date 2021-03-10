@@ -252,6 +252,7 @@ func TestTemplateProcessor_TemplateAssetsInPathYaml(t *testing.T) {
 	for _, y := range assets {
 		results = append(results, []byte(y))
 	}
+	results[0] = append([]byte(copyright), results[0]...)
 	type args struct {
 		path      string
 		excluded  []string
