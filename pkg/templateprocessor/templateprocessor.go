@@ -349,6 +349,11 @@ func (tp *TemplateProcessor) AssetNamesInPath(
 	recursive bool,
 ) ([]string, error) {
 	results := make([]string, 0)
+	_, err := tp.reader.Asset(path)
+	if err == nil {
+		results = append(results, path)
+		return results, nil
+	}
 	names, err := tp.reader.AssetNames()
 	if err != nil {
 		return nil, err
