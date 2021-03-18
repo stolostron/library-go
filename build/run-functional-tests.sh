@@ -1,5 +1,6 @@
-# Copyright Contributors to the Open Cluster Management project
+#!/bin/bash
 
+# Copyright Contributors to the Open Cluster Management project
 
 set -e
 #set -x
@@ -20,12 +21,16 @@ if ! which kind > /dev/null; then
 fi
 if ! which ginkgo > /dev/null; then
     echo "Installing ginkgo ..."
+    pushd $(mktemp -d)
     GO111MODULE=off go get github.com/onsi/ginkgo/ginkgo
     GO111MODULE=off go get github.com/onsi/gomega/...
+    popd
 fi
 if ! which gocovmerge > /dev/null; then
   echo "Installing gocovmerge..."
+  pushd $(mktemp -d)
   GO111MODULE=off go get -u github.com/wadey/gocovmerge
+  popd
 fi
 
 echo "setting up test tmp folder"
@@ -46,7 +51,15 @@ echo "install cluster"
 # setup cluster
 make kind-cluster-setup
 
+set +e
 make functional-test
+if [ $? != 0 ]; then
+  ERR=$?
+  POD_NAME=`kubectl get pods -n open-cluster-management -oname | grep clusterlifecycle-state-metrics`
+  echo "$POD_NAME" | xargs -L 1 kubectl logs -n open-cluster-management
+  exit $ERR
+fi
+set -e
 
 echo "delete cluster"
 kind delete cluster --name ${CLUSTER_NAME}
