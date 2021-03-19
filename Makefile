@@ -21,9 +21,12 @@ export PATH := ${PATH}:${KUBEBUILDER_HOME}/bin
 deps:
 	$(INSTALL_DEPENDENCIES)
 
-.PHONE: check
-check:
-	build/check-copyright.sh
+.PHONY: check
+check: check-copyright
+
+.PHONY: check-copyright
+check-copyright:
+	@build/check-copyright.sh
 
 .PHONY: test
 ## Runs go unit tests
