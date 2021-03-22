@@ -34,8 +34,6 @@ const KubernetesYamlsDelimiterString = "---\n"
 type TemplateProcessor struct {
 	//reader a TemplateReader to read the data source
 	reader TemplateReader
-	//template
-	tmpl *template.Template
 	//Options to configure the TemplateProcessor
 	options *Options
 }
@@ -205,14 +203,8 @@ func NewTemplateProcessor(
 				options.Delimiter,
 				options.DelimiterString)
 	}
-	tmpl := template.New("yamls").
-		Option(string(options.MissingKeyType)).
-		Funcs(ApplierFuncMap())
-	tmpl = tmpl.Funcs(TemplateFuncMap(tmpl)).
-		Funcs(sprig.TxtFuncMap())
 	return &TemplateProcessor{
 		reader:  reader,
-		tmpl:    tmpl,
 		options: options,
 	}, nil
 }
@@ -261,19 +253,44 @@ func (tp *TemplateProcessor) TemplateResource(
 		return nil, err
 	}
 	klog.V(5).Infof("\nb--->\n%s\n---", string(b))
-	h = append(h, b[:]...)
-	klog.V(5).Infof("\nh+b--->\n%s\n---", string(h))
-	templated, err := tp.TemplateBytes(h, values)
+	t := append(h, b[:]...)
+	klog.V(5).Infof("\nh+b--->\n%s\n---", string(t))
+	tmpl := tp.getTemplate(templateName)
+	templated, err := tp.TemplateBytes(tmpl, t, values)
+	if err != nil && len(h) > 0 {
+		n := countRune(string(h), '\n')
+		err = fmt.Errorf("%s first line is line #%d as a _helpers.tpl file is present", err, n)
+	}
 	return templated, err
+}
+
+func (tp *TemplateProcessor) getTemplate(templateName string) *template.Template {
+	tmpl := template.New(templateName).
+		Option(string(tp.options.MissingKeyType)).
+		Funcs(ApplierFuncMap())
+	tmpl = tmpl.Funcs(TemplateFuncMap(tmpl)).
+		Funcs(sprig.TxtFuncMap())
+	return tmpl
+}
+
+func countRune(s string, r rune) int {
+	count := 0
+	for _, c := range s {
+		if c == r {
+			count++
+		}
+	}
+	return count
 }
 
 //TemplateBytes render the given template with the provided values
 func (tp *TemplateProcessor) TemplateBytes(
+	tmpl *template.Template,
 	b []byte,
 	values interface{},
 ) ([]byte, error) {
 	var buf bytes.Buffer
-	tmpl, err := tp.tmpl.Parse(string(b))
+	tmpl, err := tmpl.Parse(string(b))
 	if err != nil {
 		return nil, err
 	}
