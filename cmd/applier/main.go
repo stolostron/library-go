@@ -1,5 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
+// Deprecated: Use github.com/open-cluster-management/applier/pkg/applier project
 package main
 
 import (
@@ -52,6 +53,10 @@ func main() {
 	flag.BoolVar(&o.silent, "s", false, "If set the applier will run silently")
 	flag.Parse()
 
+	if !o.silent {
+		fmt.Print("WARNING: Deprecated: Use github.com/open-cluster-management/applier/pkg/applier project\n",
+			"clone the project and then run 'make install`")
+	}
 	err := checkOptions(&o)
 	if err != nil {
 		fmt.Printf("Incorrect arguments: %s\n", err)

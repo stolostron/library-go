@@ -3,9 +3,6 @@
 package config
 
 import (
-	"os"
-	"os/user"
-	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -18,18 +15,6 @@ func TestLoadConfig(t *testing.T) {
 	apiConfig, err := clientcmd.LoadFromFile(kubeconfigPath)
 	if err != nil {
 		t.Error(err)
-	}
-
-	userconfigexists := true
-	if usr, err := user.Current(); err == nil {
-		if _, err := os.Stat(filepath.Join(usr.HomeDir, ".kube", "config")); os.IsNotExist(err) {
-			userconfigexists = false
-		}
-	}
-
-	inCluster := false
-	if _, err = rest.InClusterConfig(); err == nil {
-		inCluster = true
 	}
 
 	config, err := clientcmd.NewDefaultClientConfig(
@@ -89,22 +74,10 @@ func TestLoadConfig(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
-		{
-			name: "Succeed user or InCluster",
-			args: args{
-				url:        "",
-				kubeconfig: "",
-				context:    "",
-			},
-			want:    nil,
-			wantErr: !(userconfigexists || inCluster),
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Logf("Test name: %s", tt.name)
-			t.Logf("User kubeconfig exists: %t", userconfigexists)
-			t.Logf("Running in a cluster: %t", inCluster)
 			got, err := LoadConfig(tt.args.url, tt.args.kubeconfig, tt.args.context)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadConfig() error = %v, wantErr %v", err, tt.wantErr)
