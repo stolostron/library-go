@@ -1,5 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
+// Deprecated: Use github.com/open-cluster-management/applier/pkg/applier project
 package applier
 
 import (
