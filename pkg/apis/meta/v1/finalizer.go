@@ -37,7 +37,7 @@ func RemoveFinalizer(o metav1.Object, finalizer string) {
 //HasFinalizer check if a finalizer is present
 func HasFinalizer(o metav1.Object, finalizer string) bool {
 	for _, f := range o.GetFinalizers() {
-		if f != finalizer {
+		if f == finalizer {
 			return true
 		}
 	}
