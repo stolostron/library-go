@@ -35,7 +35,7 @@ In addition, the `Webhook` package also provide helpers(`certificate.go`) to hel
 As the end result, you should find a `service` running in the pod's namespace,
 also a `ValidatingWebhookConfiguration` point to the `service`. When users
 operate on the watching resources of given operations, the validation logic will
-be triggered. Here's an [exmple](https://github.com/open-cluster-management/multicloud-operators-channel/blob/master/cmd/manager/exec/manager.go#L217)
+be triggered. Here's an [exmple](https://github.com/open-cluster-management/multicloud-operators-channel/blob/main/cmd/manager/exec/manager.go#L217)
 
 # How to customize 
 As you can see for the `NewWebHookWireUp()`, it expects the optional function.
