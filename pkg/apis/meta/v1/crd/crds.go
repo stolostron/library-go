@@ -18,10 +18,10 @@ import (
 func HasCRDs(client clientset.Interface, expectedCRDs []string) (has bool, missingCRDs []string, err error) {
 	missingCRDs = make([]string, 0)
 	has = true
-	clientAPIExtensionV1beta1 := client.ApiextensionsV1beta1()
+	clientAPIExtensionV1 := client.ApiextensionsV1()
 	for _, crd := range expectedCRDs {
 		klog.V(1).Infof("Check if %s exists", crd)
-		_, errGet := clientAPIExtensionV1beta1.CustomResourceDefinitions().Get(context.TODO(), crd, metav1.GetOptions{})
+		_, errGet := clientAPIExtensionV1.CustomResourceDefinitions().Get(context.TODO(), crd, metav1.GetOptions{})
 		if errGet != nil {
 			if errors.IsNotFound(errGet) {
 				missingCRDs = append(missingCRDs, crd)
