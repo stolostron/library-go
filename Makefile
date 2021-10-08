@@ -110,9 +110,13 @@ examples:
 build:
 	go build -o bin/applier cmd/applier/main.go
 
+.PHONY: build-functional-test
+build-functional-test:
+	go test -c ./test/functional -mod=vendor -tags functional
+
 .PHONY: functional-test
-functional-test:
-	ginkgo -tags functional -v --slowSpecThreshold=30 test/functional -- -v=1
+functional-test: build-functional-test
+	cd ./test/functional/ && ../../functional.test -test.v -ginkgo.v=1 -ginkgo.slowSpecThreshold=30
 
 .PHONY: functional-test-full
 functional-test-full: 
