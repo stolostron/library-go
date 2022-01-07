@@ -1,5 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
+//go:build functional
 // +build functional
 
 package functional_test
@@ -9,7 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
+	libgoclient "github.com/stolostron/library-go/pkg/client"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"

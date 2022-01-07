@@ -8,7 +8,7 @@ import (
 
 	k8scertutil "k8s.io/client-go/util/cert"
 
-	webhook "github.com/open-cluster-management/library-go/pkg/webhook"
+	webhook "github.com/stolostron/library-go/pkg/webhook"
 )
 
 func TestGenerateSignedWebhookCertificates(t *testing.T) {

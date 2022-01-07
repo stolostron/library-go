@@ -5,13 +5,13 @@ package client
 import (
 	"fmt"
 
-	"github.com/open-cluster-management/library-go/pkg/config"
+	"github.com/stolostron/library-go/pkg/config"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	libgocrdv1 "github.com/open-cluster-management/library-go/pkg/apis/meta/v1/crd"
-	libgodeploymentv1 "github.com/open-cluster-management/library-go/pkg/apis/meta/v1/deployment"
+	libgocrdv1 "github.com/stolostron/library-go/pkg/apis/meta/v1/crd"
+	libgodeploymentv1 "github.com/stolostron/library-go/pkg/apis/meta/v1/deployment"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -132,7 +132,7 @@ func HaveServerResources(client clientset.Interface, expectedAPIGroups []string)
 }
 
 //Deprecated:
-// Use https://github.com/open-cluster-management/library-go/pkg/apis/meta/v1/crd#HasCRDs
+// Use https://github.com/stolostron/library-go/pkg/apis/meta/v1/crd#HasCRDs
 //HaveCRDs returns an error if all provided CRDs are not installed
 //client: the client to use
 //expectedCRDs: The list of expected CRDS to find
@@ -148,7 +148,7 @@ func HaveCRDs(client clientset.Interface, expectedCRDs []string) error {
 }
 
 //Deprecated:
-// Use https://github.com/open-cluster-management/library-go/pkg/apis/meta/v1/deployment#HaveDeploymentsInNamespace
+// Use https://github.com/stolostron/library-go/pkg/apis/meta/v1/deployment#HaveDeploymentsInNamespace
 //HaveDeploymentsInNamespace returns an error if all provided deployment are not installed in the given namespace
 //client: the client to use
 //namespace: The namespace to search in

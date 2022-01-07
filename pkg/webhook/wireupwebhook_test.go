@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 
-	webhook "github.com/open-cluster-management/library-go/pkg/webhook"
+	webhook "github.com/stolostron/library-go/pkg/webhook"
 )
 
 var _ = Describe("test if wireUp can create CA, service and validatingWebhookConfigration", func() {

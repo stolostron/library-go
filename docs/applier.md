@@ -20,8 +20,8 @@ The resources are sorted in order to be applied in a kubernetes environment usin
 A command-line is available to apply yaml files in a given directory. 
 To generate it run either: 
 - `make build`, the `applier` executable will be in the `bin` directory
-- `go install -i github.com/open-cluster-management/library-go/cmd/applier` to install from your local environment
-- `go get -u github.com/open-cluster-management/library-go/cmd/applier` to install from github
+- `go install -i github.com/stolostron/library-go/cmd/applier` to install from your local environment
+- `go get -u github.com/stolostron/library-go/cmd/applier` to install from github
 
 ```
 applier -d <templates_directory> [-o <output_file>] [-k <kubeconfig_file_path>] [-dry-run] [-v n] [-values <values_file_path>] 
