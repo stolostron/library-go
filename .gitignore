@@ -20,4 +20,6 @@ kind_kubeconfig.yaml
 test/functional/tmp
 test/functional/coverage
 kind_kubeconfig.yaml
+functional.test
+
 

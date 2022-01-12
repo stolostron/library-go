@@ -1,4 +1,4 @@
-module github.com/open-cluster-management/library-go
+module github.com/stolostron/library-go
 
 go 1.15
 

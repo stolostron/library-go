@@ -1,6 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
-// Deprecated: Use github.com/open-cluster-management/applier/pkg/applier project
+// Deprecated: Use github.com/stolostron/applier/pkg/applier project
 package applier
 
 import (
@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
+	"github.com/stolostron/library-go/pkg/templateprocessor"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/api/errors"

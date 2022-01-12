@@ -10,4 +10,4 @@ This project contains a number of Kubernetes Go utilities like methods:
 
 ## Documentation
 
-see [GoDoc](https://pkg.go.dev/github.com/open-cluster-management/library-go)
+see [GoDoc](https://pkg.go.dev/github.com/stolostron/library-go)

@@ -1,5 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
+//go:build functional
 // +build functional
 
 package functional_test
@@ -10,13 +11,13 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	libgocrdv1 "github.com/open-cluster-management/library-go/pkg/apis/meta/v1/crd"
-	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
+	libgocrdv1 "github.com/stolostron/library-go/pkg/apis/meta/v1/crd"
+	"github.com/stolostron/library-go/pkg/templateprocessor"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/library-go/pkg/applier"
+	"github.com/stolostron/library-go/pkg/applier"
 	"gopkg.in/yaml.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

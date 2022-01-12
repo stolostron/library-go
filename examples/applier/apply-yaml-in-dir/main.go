@@ -8,10 +8,10 @@ import (
 	"flag"
 	"os"
 
-	// "github.com/open-cluster-management/library-go/examples/applier/bindata"
-	"github.com/open-cluster-management/library-go/pkg/applier"
-	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
-	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
+	// "github.com/stolostron/library-go/examples/applier/bindata"
+	"github.com/stolostron/library-go/pkg/applier"
+	libgoclient "github.com/stolostron/library-go/pkg/client"
+	"github.com/stolostron/library-go/pkg/templateprocessor"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

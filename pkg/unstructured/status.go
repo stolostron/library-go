@@ -3,12 +3,12 @@
 package unstructured
 
 import (
-	libgounstructuredv1 "github.com/open-cluster-management/library-go/pkg/apis/meta/v1/unstructured"
+	libgounstructuredv1 "github.com/stolostron/library-go/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 //Deprecated:
-// Use https://github.com/open-cluster-management/library-go/pkg/apis/meta/v1/unstructured#GetCondition
+// Use https://github.com/stolostron/library-go/pkg/apis/meta/v1/unstructured#GetCondition
 //GetCondition returns the condition with type typeString
 // returns error if the condition is not found
 //u: The *unstructured.Unstructured object to search in

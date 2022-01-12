@@ -1,6 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
-// Deprecated: Use github.com/open-cluster-management/applier/pkg/applier project
+// Deprecated: Use github.com/stolostron/applier/pkg/applier project
 package main
 
 import (
@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
-	"github.com/open-cluster-management/library-go/pkg/applier"
-	libgoclient "github.com/open-cluster-management/library-go/pkg/client"
-	"github.com/open-cluster-management/library-go/pkg/templateprocessor"
+	"github.com/stolostron/library-go/pkg/applier"
+	libgoclient "github.com/stolostron/library-go/pkg/client"
+	"github.com/stolostron/library-go/pkg/templateprocessor"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,7 +54,7 @@ func main() {
 	flag.Parse()
 
 	if !o.silent {
-		fmt.Print("WARNING: Deprecated: Use github.com/open-cluster-management/applier/pkg/applier project\n",
+		fmt.Print("WARNING: Deprecated: Use github.com/stolostron/applier/pkg/applier project\n",
 			"clone the project and then run 'make install`")
 	}
 	err := checkOptions(&o)

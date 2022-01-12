@@ -1,6 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
-// Deprecated: Use github.com/open-cluster-management/applier/pkg/templateprocessor project
+// Deprecated: Use github.com/stolostron/applier/pkg/templateprocessor project
 package templateprocessor
 
 import (

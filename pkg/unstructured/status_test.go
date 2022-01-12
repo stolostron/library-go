@@ -8,5 +8,5 @@ import (
 
 func TestGetCondition(t *testing.T) {
 	// This test is covered by
-	// github.com/open-cluster-management/library-go/pkg/apis/meta/v1/unstructured.TestGetConditionByType(t)
+	// github.com/stolostron/library-go/pkg/apis/meta/v1/unstructured.TestGetConditionByType(t)
 }
